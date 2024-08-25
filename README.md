@@ -23,8 +23,6 @@ docker run \
   --rm -it \
   --net host \
   -e PORT=3000 \
-  -e APISIX_ADMIN_URL=http://localhost:9180 \
-  -e APISIX_CONTROL_URL=http://localhost:9090 \
   --name apisix-admin-panel \
   igncp/apisix-admin-panel:latest
 ```
@@ -35,7 +33,7 @@ You can pass a custom `APISIX_ADMIN_KEY` env variable to interact with your
 APISIX instance.
 
 
-You can find information in the [Docker Hub page](https://hub.docker.com/repository/docker/igncp/apisix-admin-panel/general).
+You can find information in the [Docker Hub page](https://hub.docker.com/r/igncp/apisix-admin-panel).
 
 ## Requirements
 

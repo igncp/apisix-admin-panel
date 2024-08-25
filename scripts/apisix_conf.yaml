@@ -1,0 +1,28 @@
+apisix:
+  enable_ipv6: false
+  node_listen: 9080
+  proxy_mode: "http&stream"
+  stream_proxy:
+    tcp:
+      - 9100
+
+  enable_control: true
+  control:
+    ip: "0.0.0.0"
+    port: 9090
+
+deployment:
+  admin:
+    allow_admin:
+      - 0.0.0.0/0
+
+    admin_key:
+      - name: "admin"
+        key: edd1c9f034335f136f87ad84b625c8f1
+        role: admin
+
+  etcd:
+    host:
+      - "http://etcd:2379"
+    prefix: "/apisix"
+    timeout: 30

@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "server",
+    "wasm",
+    "core"
+]
+resolver = "1"
+
+[profile.release]
+opt-level = 'z'
+codegen-units = 1
+lto = true
+strip = true
+panic = "abort"

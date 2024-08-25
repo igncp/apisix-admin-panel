@@ -1,0 +1,18 @@
+[package]
+name = "apisix-admin-panel-lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0.167", features = ["derive"] }
+serde-wasm-bindgen = "0.5.0"
+serde_json = "1.0.67"
+apisix-admin-panel-core = { path = "../core" }
+wasm-bindgen = { version = "0.2.87", features = ["serde-serialize", "serde", "serde_json"] }
+derive_more = { version = "1.0.0", features = ["from"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

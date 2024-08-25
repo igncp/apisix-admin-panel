@@ -1,0 +1,6 @@
+/target
+.direnv
+node_modules
+.next
+server/src/generated/proto/main.rs
+pkg

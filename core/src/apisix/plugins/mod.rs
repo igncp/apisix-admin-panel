@@ -1,4 +1,9 @@
 pub mod basic_auth;
 pub mod common;
+pub mod consumer_restriction;
+pub mod ip_restriction;
 pub mod key_auth;
 pub mod limit_count;
+pub mod proxy_rewrite;
+pub mod public_api;
+pub mod response_rewrite;

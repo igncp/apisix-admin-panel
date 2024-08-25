@@ -94,6 +94,7 @@ derive_common_default! {
 pub struct EntityFields {
     pub default_value: Option<String>,
     pub description: String,
+    pub example: Option<String>,
     pub hidden: bool,
     pub is_required: Required,
     pub name: String,

@@ -102,3 +102,5 @@ export const createUpstream = createMethod(WasmUpstream);
 export const getSchema = () => fetchApisixControl(WasmControlPane.get_schema());
 export const getHealthCheck = () =>
   fetchApisixControl(WasmControlPane.get_health_check());
+export const reloadPlugins = () =>
+  fetchApisixControl(WasmControlPane.reload_plugins());

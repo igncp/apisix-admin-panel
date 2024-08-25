@@ -1,3 +1,4 @@
+import Head from "next/head";
 import {
   WasmConsumer,
   WasmConsumerGroup,
@@ -34,6 +35,7 @@ import {
   deleteUpstream,
   getHealthCheck,
   getSchema,
+  reloadPlugins,
 } from "../lib/client";
 import {
   useFetchConsumerGroups,
@@ -152,8 +154,19 @@ export default function Dashboard() {
     }, 3000);
   };
 
+  const handleDeleteError = (err: unknown) => {
+    if (typeof err === "string") {
+      setSnackbar(err);
+    }
+
+    throw err;
+  };
+
   return (
     <>
+      <Head>
+        <title>APISIX Dashboard</title>
+      </Head>
       <TopBar />
       <div className="m-auto max-w-[1024px] pb-[50px] pt-[100px]">
         <Section
@@ -167,17 +180,28 @@ export default function Dashboard() {
           <div className="flex flex-row gap-[12px]">
             <Button
               onClick={() => {
-                getSchema().then(setControlData);
+                getSchema().then(setControlData).catch(setSnackbar);
               }}
             >
               Get Schema
             </Button>
             <Button
               onClick={() => {
-                getHealthCheck().then(setControlData);
+                getHealthCheck().then(setControlData).catch(setSnackbar);
               }}
             >
               Get health check
+            </Button>
+            <Button
+              onClick={() => {
+                reloadPlugins()
+                  .then((r) =>
+                    setSnackbar(`Response: ${(r as string) || '""'}`),
+                  )
+                  .catch(setSnackbar);
+              }}
+            >
+              Reload plugins
             </Button>
           </div>
           {!!controlData && (
@@ -236,7 +260,9 @@ export default function Dashboard() {
               onDelete={(consumer) => {
                 setDialogOpts({
                   onAccept: () =>
-                    deleteConsumer(consumer).then(() => refetchConsumers()),
+                    deleteConsumer(consumer)
+                      .then(() => refetchConsumers())
+                      .catch(handleDeleteError),
                   text: `Are you sure you want to delete consumer "${consumer.short_display}"?`,
                   title: "Delete consumer",
                 });
@@ -256,7 +282,7 @@ export default function Dashboard() {
           }
         >
           <Form
-            onSubmit={() => {
+            onSubmit={({ onComplete }) => {
               const group = parseEntityFields(
                 WasmConsumerGroup,
                 consumerGroupFields,
@@ -266,6 +292,7 @@ export default function Dashboard() {
                 .then(() => refetchConsumerGroups())
                 .then(() => {
                   setConsumerGroupFields(null);
+                  onComplete();
                 })
                 .catch((err) => {
                   setSnackbar(err);
@@ -286,9 +313,9 @@ export default function Dashboard() {
               onDelete={(consumerGroup) => {
                 setDialogOpts({
                   onAccept: () =>
-                    deleteConsumerGroup(consumerGroup).then(() =>
-                      refetchConsumerGroups(),
-                    ),
+                    deleteConsumerGroup(consumerGroup)
+                      .then(() => refetchConsumerGroups())
+                      .catch(handleDeleteError),
                   text: `Are you sure you want to delete consumer group "${consumerGroup.short_display}"?`,
                   title: "Delete consumer group",
                 });
@@ -305,7 +332,7 @@ export default function Dashboard() {
           }
         >
           <Form
-            onSubmit={() => {
+            onSubmit={({ onComplete }) => {
               Promise.resolve()
                 .then(() => {
                   const route = parseEntityFields(WasmRoute, routeFields);
@@ -315,6 +342,7 @@ export default function Dashboard() {
                 .then(() => refetchRoutes())
                 .then(() => {
                   setRouteFields(null);
+                  onComplete();
                 })
                 .catch((err) => {
                   setSnackbar(err);
@@ -335,7 +363,9 @@ export default function Dashboard() {
               onDelete={(route) => {
                 setDialogOpts({
                   onAccept: () =>
-                    deleteRoute(route).then(() => refetchRoutes()),
+                    deleteRoute(route)
+                      .then(() => refetchRoutes())
+                      .catch(handleDeleteError),
                   text: `Are you sure you want to delete route "${route.short_display}"?`,
                   title: "Delete route",
                 });
@@ -352,13 +382,14 @@ export default function Dashboard() {
           }
         >
           <Form
-            onSubmit={() => {
+            onSubmit={({ onComplete }) => {
               const secret = parseEntityFields(WasmSecret, secretFields);
 
               createSecret(secret)
                 .then(() => refetchSecrets())
                 .then(() => {
                   setSecretFields(null);
+                  onComplete();
                 })
                 .catch((err) => {
                   setSnackbar(err);
@@ -379,7 +410,9 @@ export default function Dashboard() {
               onDelete={(secret) => {
                 setDialogOpts({
                   onAccept: () =>
-                    deleteSecret(secret).then(() => refetchSecrets()),
+                    deleteSecret(secret)
+                      .then(() => refetchSecrets())
+                      .catch(handleDeleteError),
                   text: `Are you sure you want to delete secret "${secret.short_display}"?`,
                   title: "Delete secret",
                 });
@@ -396,15 +429,16 @@ export default function Dashboard() {
           }
         >
           <Form
-            onSubmit={() => {
+            onSubmit={({ onComplete }) => {
               const service = parseEntityFields(WasmService, serviceFields);
 
               Promise.resolve()
                 .then(() => createService(service))
+                .then(() => setServiceFields(null))
                 .then(() => {
-                  setServiceFields(null);
+                  refetchServices();
+                  onComplete();
                 })
-                .then(() => refetchServices())
                 .catch((err) => {
                   setSnackbar(err);
                 });
@@ -424,7 +458,9 @@ export default function Dashboard() {
               onDelete={(service) => {
                 setDialogOpts({
                   onAccept: () =>
-                    deleteService(service).then(() => refetchServices()),
+                    deleteService(service)
+                      .then(() => refetchServices())
+                      .catch(handleDeleteError),
                   text: `Are you sure you want to delete service "${
                     service.short_display
                   }"?`,
@@ -445,7 +481,7 @@ export default function Dashboard() {
           }
         >
           <Form
-            onSubmit={() => {
+            onSubmit={({ onComplete }) => {
               const streamRoute = parseEntityFields(
                 WasmStreamRoute,
                 streamRouteFields,
@@ -455,6 +491,7 @@ export default function Dashboard() {
                 .then(() => refetchStreamRoutes())
                 .then(() => {
                   setStreamRouteFields(null);
+                  onComplete();
                 })
                 .catch((err) => {
                   setSnackbar(err);
@@ -475,9 +512,9 @@ export default function Dashboard() {
               onDelete={(streamRoute) => {
                 setDialogOpts({
                   onAccept: () =>
-                    deleteStreamRoute(streamRoute).then(() =>
-                      refetchStreamRoutes(),
-                    ),
+                    deleteStreamRoute(streamRoute)
+                      .then(() => refetchStreamRoutes())
+                      .catch(handleDeleteError),
                   text: `Are you sure you want to delete stream route "${streamRoute.short_display}"?`,
                   title: "Delete stream route",
                 });
@@ -494,13 +531,14 @@ export default function Dashboard() {
           }
         >
           <Form
-            onSubmit={() => {
+            onSubmit={({ onComplete }) => {
               const upstream = parseEntityFields(WasmUpstream, upstreamFields);
 
               createUpstream(upstream)
                 .then(() => refetchUpstreams())
                 .then(() => {
                   setUpstreamFields(null);
+                  onComplete();
                 })
                 .catch((err) => {
                   setSnackbar(err);
@@ -521,7 +559,9 @@ export default function Dashboard() {
               onDelete={(upstream) => {
                 setDialogOpts({
                   onAccept: () =>
-                    deleteUpstream(upstream).then(() => refetchUpstreams()),
+                    deleteUpstream(upstream)
+                      .then(() => refetchUpstreams())
+                      .catch(handleDeleteError),
                   text: `Are you sure you want to delete upstream "${upstream.short_display}"?`,
                   title: "Delete upstream",
                 });

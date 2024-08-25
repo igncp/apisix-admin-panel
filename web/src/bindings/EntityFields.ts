@@ -5,6 +5,7 @@ import type { Required } from "./Required";
 export type EntityFields = {
   default_value: null | string;
   description: string;
+  example: null | string;
   hidden: boolean;
   is_required: Required;
   name: string;

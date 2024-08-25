@@ -48,6 +48,19 @@ export const parseEntityFields = <
     const { name: itemName } = fieldDefinition;
 
     switch (fieldDefinition.property_type) {
+      case "Value": {
+        const value = (() => {
+          try {
+            return JSON.parse(itemValue as string);
+          } catch {
+            return undefined;
+          }
+        })();
+
+        entity.set_field(itemName, value);
+        break;
+      }
+
       case "Number": {
         const value = Number(itemValue);
 
@@ -86,6 +99,29 @@ export const parseEntityFields = <
       }
 
       default: {
+        if (
+          typeof fieldDefinition.property_type === "object" &&
+          "List" in fieldDefinition.property_type &&
+          fieldDefinition.property_type.List === "Value"
+        ) {
+          if (!itemValue) {
+            break;
+          }
+
+          const parsedItems = (itemValue as string[])
+            .map((item) => {
+              try {
+                return JSON.parse(item);
+              } catch {
+                return undefined;
+              }
+            })
+            .filter(Boolean);
+
+          entity.set_field(itemName, parsedItems);
+          break;
+        }
+
         entity.set_field(itemName, itemValue);
       }
     }
@@ -111,15 +147,19 @@ const EntityFieldBase = ({ entity, items, setItems }: Props) => {
       return 0;
     }
 
-    if (a.property_type !== "Plugins") {
+    if (typeof a.property_type !== "object" && a.property_type !== "Plugins") {
       return 1;
     }
 
-    return 2;
+    if (a.property_type !== "Plugins") {
+      return 2;
+    }
+
+    return 3;
   };
 
   return (
-    <div className="flex flex-col gap-[12px]">
+    <div className="flex w-full flex-col gap-[12px]">
       {fieldsDefinitions
         .sort((a, b) => getSortVal(a) - getSortVal(b))
         .map((fieldDefinition) => {
@@ -152,6 +192,7 @@ const EntityFieldBase = ({ entity, items, setItems }: Props) => {
             "List" in fieldDefinition.property_type
           ) {
             const parsedItems = (fieldValue as string[] | undefined) || [];
+            const isJSON = fieldDefinition.property_type.List === "Value";
 
             return (
               <div className="flex flex-col gap-[12px]" key={name}>
@@ -168,42 +209,64 @@ const EntityFieldBase = ({ entity, items, setItems }: Props) => {
                     +
                   </Button>
                 </div>
-                {parsedItems.map((value, index) => (
-                  <div className="flex flex-row gap-[12px]" key={index}>
-                    <Input
-                      onChange={(e) => {
-                        setItems({
-                          ...items,
-                          [name]: parsedItems.map((v, i) =>
-                            i === index ? e.target.value : v,
-                          ),
-                        });
-                      }}
-                      placeholder={`${name} #${index + 1}`}
-                      value={value}
-                    />
-                    <IconButton
-                      aria-label="Clear"
-                      edge="end"
-                      onClick={() => {
-                        let newList: string[] | undefined = parsedItems.filter(
-                          (_, i) => i !== index,
-                        );
+                {fieldDefinition.description && (
+                  <Text className="text-[#aaa]">
+                    {fieldDefinition.description}
+                  </Text>
+                )}
+                {parsedItems.map((value, index) => {
+                  const isValid = (() => {
+                    if (!isJSON || !value) {
+                      return true;
+                    }
 
-                        if (newList.length === 0) {
-                          newList = undefined;
-                        }
+                    try {
+                      JSON.parse(value);
 
-                        setItems({
-                          ...items,
-                          [name]: newList,
-                        });
-                      }}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </div>
-                ))}
+                      return true;
+                    } catch {
+                      return false;
+                    }
+                  })();
+
+                  return (
+                    <div className="flex flex-row gap-[12px]" key={index}>
+                      <Input
+                        error={!isValid}
+                        multiline={isJSON}
+                        onChange={(e) => {
+                          setItems({
+                            ...items,
+                            [name]: parsedItems.map((v, i) =>
+                              i === index ? e.target.value : v,
+                            ),
+                          });
+                        }}
+                        placeholder={`${name} #${index + 1}${isJSON ? " (JSON)" : ""}`}
+                        value={value}
+                      />
+                      <IconButton
+                        aria-label="Clear"
+                        edge="end"
+                        onClick={() => {
+                          let newList: string[] | undefined =
+                            parsedItems.filter((_, i) => i !== index);
+
+                          if (newList.length === 0) {
+                            newList = undefined;
+                          }
+
+                          setItems({
+                            ...items,
+                            [name]: newList,
+                          });
+                        }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </div>
+                  );
+                })}
               </div>
             );
           }
@@ -222,11 +285,17 @@ const EntityFieldBase = ({ entity, items, setItems }: Props) => {
             }
           })();
 
+          const fieldText =
+            name +
+            (fieldDefinition.is_required !== "False" ? "*" : "") +
+            (fieldDefinition.property_type === "Value" ? " (JSON)" : "");
+
           return (
             <Input
               error={hasError}
+              helperText={fieldDefinition.description || undefined}
               key={name}
-              label={name}
+              label={fieldText}
               multiline={fieldDefinition.property_type === "Value"}
               onChange={(e) => {
                 setItems({
@@ -235,7 +304,9 @@ const EntityFieldBase = ({ entity, items, setItems }: Props) => {
                 });
               }}
               placeholder={
-                name + (fieldDefinition.is_required !== "False" ? "*" : "")
+                (fieldDefinition.example
+                  ? `Example: ${fieldDefinition.example}`
+                  : "") || fieldText
               }
               type="text"
               value={fieldValue || ""}

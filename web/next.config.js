@@ -1,7 +1,12 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const webpack = require("webpack");
+const fs = require("fs");
+
+const NEXT_PUBLIC_VERSION = fs.readFileSync("../VERSION", "utf8").trim();
 
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_VERSION,
+  },
   output: "export",
   webpack: (config, { isServer }) => {
     config.experiments = {

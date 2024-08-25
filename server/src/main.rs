@@ -84,6 +84,17 @@ async fn post_proxy_apisix_control(body: web::Json<ProxyFetchOpts>) -> impl Resp
                 .append_header(("Content-Type", "application/json"))
                 .body(res.text().await.unwrap());
         }
+        ProxyFetchMethod::PUT => {
+            let mut client = client.put(&url);
+
+            if let Some(data) = &body.data {
+                client = client.body(data.clone());
+            }
+
+            let res = client.send().await.unwrap();
+
+            HttpResponse::Ok().json(res.text().await.unwrap())
+        }
         _ => HttpResponse::BadRequest().body("Method not allowed"),
     }
 }

@@ -1,7 +1,12 @@
 use apisix_admin_panel_core::apisix::plugins::{
     basic_auth::{ConsumerBasicAuthPlugin, RouteBasicAuthPlugin},
+    consumer_restriction::ConsumerRestrictionPlugin,
+    ip_restriction::IpRestrictionPlugin,
     key_auth::{ConsumerKeyAuthPlugin, RouteKeyAuthPlugin},
     limit_count::RouteLimitCountPlugin,
+    proxy_rewrite::ProxyRewritePlugin,
+    public_api::PublicApiPlugin,
+    response_rewrite::ResponseRewritePlugin,
 };
 use serde::Serialize;
 use serde_json::json;
@@ -17,6 +22,11 @@ impl WasmPluginDefinitions {
         let definitions = json!([
             ConsumerBasicAuthPlugin::new(),
             ConsumerKeyAuthPlugin::new(),
+            ConsumerRestrictionPlugin::new(),
+            IpRestrictionPlugin::new(),
+            ProxyRewritePlugin::new(),
+            PublicApiPlugin::new(),
+            ResponseRewritePlugin::new(),
             RouteBasicAuthPlugin::new(),
             RouteKeyAuthPlugin::new(),
             RouteLimitCountPlugin::new()

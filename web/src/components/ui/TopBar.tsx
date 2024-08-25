@@ -8,7 +8,7 @@ import Typography from "@mui/material/Typography";
 import Button from "./Button";
 
 export default function Dashboard() {
-  const version = "v0.01";
+  const version = `v${process.env.NEXT_PUBLIC_VERSION}`;
 
   return (
     <AppBar component="nav">

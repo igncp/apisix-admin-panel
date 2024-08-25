@@ -12,6 +12,7 @@ pub enum PluginEntities {
     Route,
     Service,
     ConsumerGroup,
+    Upstream,
 }}
 
 derive_common_default! {
@@ -22,6 +23,9 @@ pub enum PluginPropertyType {
     String,
     Boolean,
     Number,
+    Value,
+    List(Box<PluginPropertyType>),
+    Enum(Vec<String>),
 }}
 
 derive_common_default! {

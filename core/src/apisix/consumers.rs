@@ -51,36 +51,25 @@ impl ConsumerEntity {
     pub fn value_fields() -> Vec<EntityFields> {
         vec![
             EntityFields {
-                hidden: false,
-                default_value: None,
-                description: "".to_string(),
-                is_required: Required::False,
-                name: "plugins".to_string(),
-                property_type: PropertyType::Plugins,
-            },
-            EntityFields {
-                hidden: false,
-                default_value: None,
-                description: "Description of usage scenarios.".to_string(),
-                is_required: Required::False,
-                name: "desc".to_string(),
-                property_type: PropertyType::String,
-            },
-            EntityFields {
-                hidden: false,
-                default_value: None,
                 description: "Name of the Consumer.".to_string(),
                 is_required: Required::True,
                 name: "username".to_string(),
-                property_type: PropertyType::String,
+                ..EntityFields::default()
             },
             EntityFields {
-                hidden: false,
-                default_value: None,
+                name: "plugins".to_string(),
+                property_type: PropertyType::Plugins,
+                ..EntityFields::default()
+            },
+            EntityFields {
+                description: "Description of usage scenarios.".to_string(),
+                name: "desc".to_string(),
+                ..EntityFields::default()
+            },
+            EntityFields {
                 description: "Group of the Consumer.".to_string(),
-                is_required: Required::False,
                 name: "group_id".to_string(),
-                property_type: PropertyType::String,
+                ..EntityFields::default()
             },
         ]
     }

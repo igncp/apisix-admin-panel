@@ -3,7 +3,7 @@ use super::{
     plugins::common::PluginEntities,
 };
 use crate::{
-    apisix::common::{EntityFields, PropertyType, Required},
+    apisix::common::{EntityFields, Required},
     macros::derive_common_default,
     proxy::{ProxyFetchMethod, ProxyFetchOpts},
 };
@@ -49,46 +49,35 @@ impl SecretEntity {
     pub fn value_fields() -> Vec<EntityFields> {
         vec![
             EntityFields {
-                hidden: false,
-                default_value: None,
                 description:
                     "Matches with domain names such as foo.com or PAN domain names like *.foo.com."
                         .to_string(),
                 is_required: Required::True,
                 name: "uri".to_string(),
-                property_type: PropertyType::String,
+                ..EntityFields::default()
             },
             EntityFields {
-                hidden: false,
-                default_value: None,
                 description: "key prefix".to_string(),
                 is_required: Required::True,
                 name: "prefix".to_string(),
-                property_type: PropertyType::String,
+                ..EntityFields::default()
             },
             EntityFields {
-                hidden: false,
-                default_value: None,
                 description: "vault token".to_string(),
                 is_required: Required::True,
                 name: "token".to_string(),
-                property_type: PropertyType::String,
+                ..EntityFields::default()
             },
             EntityFields {
-                hidden: false,
-                default_value: None,
                 description: "Vault namespace, no default value".to_string(),
-                is_required: Required::False,
                 name: "namespace".to_string(),
-                property_type: PropertyType::String,
+                ..EntityFields::default()
             },
             EntityFields {
                 hidden: true,
-                default_value: None,
-                description: "".to_string(),
                 is_required: Required::True,
                 name: "id".to_string(),
-                property_type: PropertyType::String,
+                ..EntityFields::default()
             },
         ]
     }

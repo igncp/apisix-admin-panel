@@ -3,7 +3,7 @@ use super::{
     plugins::common::PluginEntities,
 };
 use crate::{
-    apisix::common::{PropertyType, Required},
+    apisix::common::Required,
     macros::derive_common_default,
     proxy::{ProxyFetchMethod, ProxyFetchOpts},
 };
@@ -52,28 +52,20 @@ impl StreamRouteEntity {
     pub fn value_fields() -> Vec<EntityFields> {
         vec![
             EntityFields {
-                hidden: false,
-                default_value: None,
                 description: "Id of the Upstream service.".to_string(),
-                is_required: Required::False,
                 name: "service_id".to_string(),
-                property_type: PropertyType::String,
+                ..Default::default()
             },
             EntityFields {
-                hidden: false,
-                default_value: None,
                 description: "Id of the Service service.".to_string(),
-                is_required: Required::False,
                 name: "upstream_id".to_string(),
-                property_type: PropertyType::String,
+                ..Default::default()
             },
             EntityFields {
                 hidden: true,
-                default_value: None,
-                description: "".to_string(),
                 is_required: Required::True,
                 name: "id".to_string(),
-                property_type: PropertyType::String,
+                ..Default::default()
             },
         ]
     }

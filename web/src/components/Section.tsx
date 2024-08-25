@@ -30,7 +30,7 @@ export const Section = ({
 );
 
 const formClasses =
-  "flex flex-col gap-[12px] items-start w-[max-content] py-[12px] p-[12px]";
+  "flex flex-col gap-[12px] items-start w-full py-[12px] p-[12px]";
 
 type FormProps = PropsWithChildren<{
   onSubmit: (o: { onComplete: () => void }) => void;

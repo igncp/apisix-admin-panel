@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
-VERSION="0.0.1"
+VERSION=$(cat $SCRIPT_DIR/../VERSION | tr -d '\n')
 
 cd $SCRIPT_DIR/..
 

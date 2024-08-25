@@ -14,4 +14,8 @@ impl WasmControlPane {
     pub fn get_health_check() -> Result<WasmProxyFetchOpts, String> {
         Ok(ControlPane::get_health_check()?.into())
     }
+
+    pub fn reload_plugins() -> Result<WasmProxyFetchOpts, String> {
+        Ok(ControlPane::reload_plugins()?.into())
+    }
 }

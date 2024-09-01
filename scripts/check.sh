@@ -11,3 +11,4 @@ cargo clippy --release --all-features --all-targets -- -D warnings
 cd web
 
 ./node_modules/.bin/eslint . --fix
+bun run build

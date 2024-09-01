@@ -3,10 +3,13 @@ use apisix_admin_panel_core::apisix::plugins::{
     consumer_restriction::ConsumerRestrictionPlugin,
     ip_restriction::IpRestrictionPlugin,
     key_auth::{ConsumerKeyAuthPlugin, RouteKeyAuthPlugin},
-    limit_count::RouteLimitCountPlugin,
+    limit_count::LimitCountPlugin,
+    prometheus::PrometheusPlugin,
+    proxy_mirror::ProxyMirrorPlugin,
     proxy_rewrite::ProxyRewritePlugin,
     public_api::PublicApiPlugin,
     response_rewrite::ResponseRewritePlugin,
+    uri_blocker::UriBlockerPlugin,
 };
 use serde::Serialize;
 use serde_json::json;
@@ -24,12 +27,15 @@ impl WasmPluginDefinitions {
             ConsumerKeyAuthPlugin::new(),
             ConsumerRestrictionPlugin::new(),
             IpRestrictionPlugin::new(),
+            LimitCountPlugin::new(),
+            PrometheusPlugin::new(),
+            ProxyMirrorPlugin::new(),
             ProxyRewritePlugin::new(),
             PublicApiPlugin::new(),
             ResponseRewritePlugin::new(),
             RouteBasicAuthPlugin::new(),
             RouteKeyAuthPlugin::new(),
-            RouteLimitCountPlugin::new()
+            UriBlockerPlugin::new()
         ]);
 
         let serializer = Serializer::new().serialize_maps_as_objects(true);

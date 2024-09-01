@@ -7,6 +7,7 @@ export type EntityFields = {
   description: string;
   example: null | string;
   hidden: boolean;
+  is_editable: boolean;
   is_required: Required;
   name: string;
   property_type: PropertyType;

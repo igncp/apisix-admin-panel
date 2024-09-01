@@ -8,6 +8,7 @@ import {
   getUpstreams,
   getSecrets,
   getStreamRoute,
+  getServerInfo,
 } from "./client";
 
 export const useFetchConsumers = () => {
@@ -98,5 +99,18 @@ export const useFetchStreamRoutes = () => {
     ...query,
     refetchStreamRoutes: refetch,
     streamRoutes: data,
+  };
+};
+
+export const useFetchServerInfo = () => {
+  const { data, refetch, ...query } = useQuery({
+    queryFn: getServerInfo,
+    queryKey: ["serverInfo"],
+  });
+
+  return {
+    ...query,
+    refetchServerInfo: refetch,
+    serverInfo: data,
   };
 };

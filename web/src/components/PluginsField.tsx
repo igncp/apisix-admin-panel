@@ -1,19 +1,13 @@
 import { WasmPluginDefinitions } from "pkg/apisix_admin_panel_lib";
 import { memo } from "react";
 
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
-
 import type { PluginDefinition } from "../bindings/PluginDefinition";
 import type { PluginEntities } from "../bindings/PluginEntities";
 import type { PluginOption } from "../bindings/PluginOption";
 
-import Button from "./ui/Button";
-import { Checkbox, Input } from "./ui/Input";
-import { Text } from "./ui/Text";
-import { DeleteIcon, IconButton, OpenInNewIcon } from "./ui/icons/Icons";
+import { MultiField } from "./MultiField";
+import { Checkbox } from "./ui/Input";
+import { OpenInNewIcon, CodeIcon } from "./ui/icons/Icons";
 
 export type PluginsState = null | Record<
   string,
@@ -22,6 +16,7 @@ export type PluginsState = null | Record<
 
 type Props = {
   entity: PluginEntities;
+  isEditing?: boolean;
   plugins: PluginsState | undefined;
   setPlugins: (plugins: PluginsState) => void;
 };
@@ -57,7 +52,7 @@ export const parsePlugins = (
               const { name: pluginOption } = pluginDefOpt;
               const { [pluginOption]: pluginOptionValue } = plugin;
 
-              if (pluginDefOpt.is_required && !pluginOptionValue) {
+              if (pluginDefOpt.is_required !== "False" && !pluginOptionValue) {
                 throw `Required field ${pluginName}.${pluginOption} is empty`;
               }
 
@@ -81,7 +76,7 @@ export const parsePlugins = (
                   break;
                 }
 
-                case "Value": {
+                case "JSON": {
                   pluginVal[pluginOption] = (() => {
                     try {
                       return JSON.parse(pluginOptionValue as string);
@@ -90,6 +85,11 @@ export const parsePlugins = (
                     }
                   })();
 
+                  break;
+                }
+
+                // Unexpected case
+                case "Plugins": {
                   break;
                 }
 
@@ -106,7 +106,7 @@ export const parsePlugins = (
                     typeof pluginDefOpt.property_type === "object" &&
                     "List" in pluginDefOpt.property_type
                   ) {
-                    if (pluginDefOpt.property_type.List === "Value") {
+                    if (pluginDefOpt.property_type.List === "JSON") {
                       pluginVal[pluginOption] = (() => {
                         try {
                           return (pluginOptionValue as string[])
@@ -148,7 +148,12 @@ export const parsePlugins = (
     undefined as Record<string, unknown> | undefined,
   );
 
-const PluginsFieldBase = ({ entity, plugins, setPlugins }: Props) => {
+const PluginsFieldBase = ({
+  entity,
+  isEditing,
+  plugins,
+  setPlugins,
+}: Props) => {
   const entityPlugins = pluginsDefinitions.filter((plugin) =>
     plugin.entities.includes(entity),
   );
@@ -174,7 +179,7 @@ const PluginsFieldBase = ({ entity, plugins, setPlugins }: Props) => {
           const isEnabled = existingPluginValues?.enabled === "true";
 
           const getSortVal = (a: PluginOption) => {
-            if (a.is_required) {
+            if (a.is_required !== "False") {
               return 0;
             }
 
@@ -203,6 +208,14 @@ const PluginsFieldBase = ({ entity, plugins, setPlugins }: Props) => {
                 >
                   <OpenInNewIcon />
                 </a>
+                <a
+                  className="text-blue-200"
+                  href={`https://github.com/apache/apisix/blob/master/apisix/plugins/${name}.lua`}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <CodeIcon />
+                </a>
                 <div className="flex-1" />
                 <span>
                   <label className="cursor-pointer" htmlFor={checkboxId}>
@@ -228,250 +241,21 @@ const PluginsFieldBase = ({ entity, plugins, setPlugins }: Props) => {
                   {plugin.options
                     .slice(0)
                     .sort((a, b) => getSortVal(a) - getSortVal(b))
-                    .map((field) => {
-                      const existingOptionValue =
-                        existingPluginValues[field.name] || "";
-
-                      if (
-                        typeof field.property_type === "object" &&
-                        "List" in field.property_type
-                      ) {
-                        const parsedItems =
-                          (existingOptionValue as string[] | undefined) || [];
-
-                        const isJSON = field.property_type.List === "Value";
-
-                        return (
-                          <div
-                            className="flex flex-col gap-[12px]"
-                            key={field.name}
-                          >
-                            <div className="flex flex-row items-baseline gap-[12px]">
-                              <Text>{field.name}</Text>
-                              <Button
-                                onClick={() => {
-                                  setPlugins({
-                                    ...plugins,
-                                    [name]: {
-                                      ...existingPluginValues,
-                                      [field.name]: [...parsedItems, ""],
-                                    },
-                                  });
-                                }}
-                              >
-                                +
-                              </Button>
-                            </div>
-                            {parsedItems.map((value, index) => {
-                              const fieldLabel = `#${index + 1}${isJSON ? " (JSON)" : ""}`;
-
-                              const isValid = (() => {
-                                if (!isJSON || !value) {
-                                  return true;
-                                }
-
-                                try {
-                                  JSON.parse(value);
-
-                                  return true;
-                                } catch {
-                                  return false;
-                                }
-                              })();
-
-                              return (
-                                <div
-                                  className="flex flex-row gap-[12px]"
-                                  key={index}
-                                >
-                                  <Input
-                                    error={!isValid}
-                                    label={fieldLabel}
-                                    multiline={isJSON}
-                                    onChange={(e) => {
-                                      setPlugins({
-                                        ...plugins,
-                                        [name]: {
-                                          ...existingPluginValues,
-                                          [field.name]: parsedItems.map(
-                                            (v, i) =>
-                                              i === index ? e.target.value : v,
-                                          ),
-                                        },
-                                      });
-                                    }}
-                                    placeholder={fieldLabel}
-                                    value={value}
-                                  />
-                                  <IconButton
-                                    aria-label="Clear"
-                                    edge="end"
-                                    onClick={() => {
-                                      let newList: string[] | undefined =
-                                        parsedItems.filter(
-                                          (_, i) => i !== index,
-                                        );
-
-                                      if (newList.length === 0) {
-                                        newList = undefined;
-                                      }
-
-                                      setPlugins({
-                                        ...plugins,
-                                        [name]: {
-                                          ...existingPluginValues,
-                                          [field.name]: newList,
-                                        },
-                                      });
-                                    }}
-                                  >
-                                    <DeleteIcon />
-                                  </IconButton>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      }
-
-                      if (
-                        typeof field.property_type === "object" &&
-                        "Enum" in field.property_type
-                      ) {
-                        const fieldId = [entity, name, field.name].join("-");
-                        const labelId = `${fieldId}-label`;
-
-                        return (
-                          <div
-                            className="flex flex-col gap-[4px]"
-                            key={field.name}
-                          >
-                            <FormControl>
-                              <InputLabel
-                                className="pl-[8px]"
-                                htmlFor={fieldId}
-                                id={labelId}
-                                variant="standard"
-                              >
-                                {field.name}
-                              </InputLabel>
-                              <Select
-                                id={fieldId}
-                                labelId={labelId}
-                                onChange={(e) => {
-                                  setPlugins({
-                                    ...(plugins || {}),
-                                    [name]: {
-                                      ...existingPluginValues,
-                                      [field.name]: e.target.value,
-                                    },
-                                  });
-                                }}
-                                value={existingOptionValue}
-                              >
-                                {field.property_type.Enum.map((option) => (
-                                  <MenuItem key={option} value={option}>
-                                    {option}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                            {field.description && (
-                              <Text className="pl-[4px] text-[#aaa]">
-                                {field.description}
-                              </Text>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      if (field.property_type === "Boolean") {
-                        const fieldId = [
-                          entity,
-                          name,
-                          field.name,
-                          "enabled",
-                        ].join("-");
-
-                        return (
-                          <div
-                            className="flex flex-col gap-[12px] pl-[8px]"
-                            key={field.name}
-                          >
-                            <div>
-                              <label
-                                className="cursor-pointer"
-                                htmlFor={fieldId}
-                              >
-                                {field.name}
-                              </label>
-                              <Checkbox
-                                checked={existingOptionValue === "true"}
-                                id={fieldId}
-                                onChange={() => {
-                                  setPlugins({
-                                    ...(plugins || {}),
-                                    [name]: {
-                                      ...existingPluginValues,
-                                      [field.name]: String(
-                                        existingOptionValue !== "true",
-                                      ),
-                                    },
-                                  });
-                                }}
-                              />
-                            </div>
-                            {field.description && (
-                              <Text className="pl-[4px] text-[#aaa]">
-                                {field.description}
-                              </Text>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      const isJSON = field.property_type === "Value";
-
-                      const isValid = (() => {
-                        if (!!existingOptionValue && isJSON) {
-                          try {
-                            JSON.parse(existingOptionValue as string);
-
-                            return true;
-                          } catch {
-                            return false;
-                          }
-                        }
-
-                        return true;
-                      })();
-
-                      return (
-                        <Input
-                          error={!isValid}
-                          helperText={field.description}
-                          key={field.name}
-                          label={field.name + (isJSON ? " (JSON)" : "")}
-                          multiline={isJSON}
-                          onChange={(e) => {
-                            setPlugins({
-                              ...(plugins || {}),
-                              [name]: {
-                                ...existingPluginValues,
-                                [field.name]: e.target.value,
-                              },
-                            });
-                          }}
-                          placeholder={
-                            field.is_required
-                              ? `* Required (${field.property_type})`
-                              : field.default_value || ""
-                          }
-                          type="text"
-                          value={existingOptionValue}
-                        />
-                      );
-                    })}
+                    .map((field) => (
+                      <MultiField
+                        definition={field}
+                        isEditing={isEditing}
+                        key={field.name}
+                        prefix={name}
+                        setState={(optionState) => {
+                          setPlugins({
+                            ...(plugins || {}),
+                            [name]: optionState,
+                          } as PluginsState);
+                        }}
+                        state={existingPluginValues}
+                      />
+                    ))}
                 </div>
               )}
             </div>

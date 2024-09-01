@@ -1,5 +1,6 @@
 import ReactJson from "@microlink/react-json-view";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type FolderIcon from "@mui/icons-material/Folder";
 import Accordion from "@mui/material/Accordion";
@@ -12,7 +13,6 @@ import ListItemAvatar from "@mui/material/ListItemAvatar";
 import ListItemText from "@mui/material/ListItemText";
 
 type ListItemBase = {
-  key: string;
   long_display: string;
   text: string;
 };
@@ -21,16 +21,18 @@ type ListProps<A extends ListItemBase> = {
   AvatarClass: typeof FolderIcon;
   items: A[];
   onDelete: (item: A) => void;
+  onEdit: (item: A) => void;
 };
 
 export const EntitiesList = <A extends ListItemBase>({
   AvatarClass,
   items,
   onDelete,
+  onEdit,
 }: ListProps<A>) => (
   <List>
     {items.map((item) => (
-      <Accordion key={item.key}>
+      <Accordion key={item.long_display}>
         <AccordionSummary
           aria-controls="panel2-content"
           expandIcon={<ExpandMoreIcon />}
@@ -43,6 +45,16 @@ export const EntitiesList = <A extends ListItemBase>({
               </Avatar>
             </ListItemAvatar>
             <ListItemText className="flex-1" primary={item.long_display} />
+            <IconButton
+              aria-label="Edit"
+              edge="end"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(item);
+              }}
+            >
+              <EditIcon />
+            </IconButton>
             <IconButton
               aria-label="Delete"
               edge="end"

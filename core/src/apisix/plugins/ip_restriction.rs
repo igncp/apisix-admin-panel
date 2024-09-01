@@ -1,5 +1,5 @@
-use super::common::{PluginDefinition, PluginEntities, PluginOption, PluginPropertyType};
-use crate::macros::derive_common_default;
+use super::common::{PluginDefinition, PluginEntities, PluginOption};
+use crate::{apisix::base::PropertyType, macros::derive_common_default};
 
 derive_common_default! {
 pub struct IpRestrictionPlugin(PluginDefinition);}
@@ -20,13 +20,13 @@ impl IpRestrictionPlugin {
                 PluginOption {
                     description: "List of IPs or CIDR ranges to whitelist.".to_string(),
                     name: "whitelist".to_string(),
-                    property_type: PluginPropertyType::List(Box::new(PluginPropertyType::String)),
+                    property_type: PropertyType::List(Box::new(PropertyType::String)),
                     ..Default::default()
                 },
                 PluginOption {
                     description: "List of IPs or CIDR ranges to blacklist.".to_string(),
                     name: "blacklist".to_string(),
-                    property_type: PluginPropertyType::List(Box::new(PluginPropertyType::String)),
+                    property_type: PropertyType::List(Box::new(PropertyType::String)),
                     ..Default::default()
                 },
                 PluginOption {

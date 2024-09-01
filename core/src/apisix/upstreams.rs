@@ -1,11 +1,11 @@
 use super::{
-    common::{Entity, EntityValue, GetListResponse, Unit},
+    common::{prelude::*, Entity, EntityValue, GetListResponse, Unit},
     plugins::common::PluginEntities,
 };
 use crate::{
-    apisix::common::{EntityFields, PropertyType},
+    apisix::{base::PropertyType, common::EntityFields},
     macros::derive_common_default,
-    proxy::{ProxyFetchMethod, ProxyFetchOpts},
+    proxy::ProxyFetchOpts,
 };
 
 derive_common_default! {
@@ -13,60 +13,39 @@ pub struct UpstreamValue(pub EntityValue);}
 
 pub type Upstream = Unit<UpstreamValue>;
 
-impl Upstream {
-    pub const API_PREFIX: &'static str = "/upstreams";
-    pub const DISPLAY_LONG: &'static [&'static str] = &[];
-    pub const DISPLAY_SHORT: &'static [&'static str] = &[];
-    pub const DOCS_KEY: &'static str = "upstream";
-    pub const PLUGIN_ENTITY: Option<PluginEntities> = None;
+impl EntityItemTrait for Upstream {
+    const API_PREFIX: &'static str = "/upstreams";
+    const DOCS_KEY: &'static str = "upstream";
+    const PLUGIN_ENTITY: Option<PluginEntities> = None;
+
+    entity_trait_get_value!();
 }
 
 pub type UpstreamEntity = Entity<Upstream>;
 
 pub type GetUpstreamsResponse = GetListResponse<Upstream>;
 
-impl UpstreamEntity {
-    pub fn create(&self) -> Result<ProxyFetchOpts, String> {
-        let id = self.parsed.value.0.get_str("id");
-        let mut new_service = self.parsed.value.0.get_cloned();
-        new_service.remove("id");
+impl EntityTrait for UpstreamEntity {
+    fn create(&self) -> Result<ProxyFetchOpts, String> {
+        let (id, data) = self.get_common_parsed_values();
+        let (uri, method) = EntityValue::common_create(Upstream::API_PREFIX, id);
 
-        let opts = serde_json::to_string(&new_service).unwrap();
-        let uri = format!(
-            "{}{}",
-            Upstream::API_PREFIX,
-            if id.is_empty() {
-                "".to_string()
-            } else {
-                format!("/{}", id)
-            }
-        );
-        let method = if id.is_empty() {
-            ProxyFetchMethod::POST
-        } else {
-            ProxyFetchMethod::PUT
-        };
-
-        Ok(ProxyFetchOpts {
-            uri,
-            method,
-            data: Some(opts),
-        })
+        Ok(ProxyFetchOpts { uri, method, data })
     }
 
-    pub fn delete(&self) -> Result<ProxyFetchOpts, String> {
-        let id = self.parsed.value.0.get_str("id");
-        let uri = format!("{}/{}", Upstream::API_PREFIX, id);
-        ProxyFetchOpts::del(uri)
-    }
-}
+    fn update(&self) -> Result<ProxyFetchOpts, String> {
+        let (id, data) = self.get_common_parsed_values();
+        let (uri, method) = EntityValue::common_update(Upstream::API_PREFIX, id);
 
-impl UpstreamEntity {
-    pub fn value_fields() -> Vec<EntityFields> {
+        Ok(ProxyFetchOpts { uri, method, data })
+    }
+
+    fn value_fields() -> Vec<EntityFields> {
         vec![
             EntityFields {
                 description: "Unique text within the upstreams".to_string(),
                 name: "id".to_string(),
+                is_editable: false,
                 ..Default::default()
             },
             EntityFields {
@@ -89,9 +68,9 @@ impl UpstreamEntity {
             EntityFields {
                 name: "nodes".to_string(),
                 example: Some(
-                    r#"{"web_server_1:80": 1}"#.to_string()
+                    r#"{"web-server-1:80": 1}"#.to_string()
                 ),
-                property_type: PropertyType::Value,
+                property_type: PropertyType::JSON,
                 ..Default::default()
             },
             EntityFields {
@@ -114,7 +93,24 @@ impl UpstreamEntity {
                 description: "Sets the timeout (in seconds) for connecting to, and sending and receiving messages to and from the Upstream.".to_string(),
                 example: Some(r#"{"connect": 0.5,"send": 0.5,"read": 0.5}"#.to_string()),
                 name: "timeout".to_string(),
-                property_type: PropertyType::Value,
+                property_type: PropertyType::JSON,
+                ..Default::default()
+            },
+            EntityFields {
+                description: "The scheme used when communicating with the Upstream.".to_string(),
+                name: "scheme".to_string(),
+                property_type: PropertyType::Enum(vec![
+                    "http".to_string(),
+                    "https".to_string(),
+                    "grpc".to_string(),
+                    "grpcs".to_string(),
+                ]),
+                ..Default::default()
+            },
+            EntityFields {
+                description: "Attributes of the Upstream specified as key-value pairs.".to_string(),
+                name: "labels".to_string(),
+                property_type: PropertyType::JSON,
                 ..Default::default()
             },
         ]

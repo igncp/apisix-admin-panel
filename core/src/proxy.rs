@@ -1,9 +1,11 @@
 use crate::macros::{derive_common, derive_common_default};
 
 derive_common! {
+#[derive(PartialEq, Eq)]
 pub enum ProxyFetchMethod {
     DELETE,
     GET,
+    PATCH,
     POST,
     PUT,
 }}

@@ -3,7 +3,6 @@ version: "3"
 services:
   apisix:
     image: apache/apisix:3.9.1-debian
-    restart: always
     volumes:
       - ./scripts/apisix_conf.yaml:/usr/local/apisix/conf/config.yaml:ro
     depends_on:
@@ -11,6 +10,7 @@ services:
     ports:
       - "9080:9080/tcp"
       - "9090:9090/tcp"
+      - "9091:9091/tcp"
       - "9180:9180/tcp"
     networks:
       apisix:
@@ -18,7 +18,6 @@ services:
   etcd:
     image: rancher/coreos-etcd:v3.4.15-arm64
     user: root
-    restart: always
     environment:
       ETCD_UNSUPPORTED_ARCH: "arm64"
       ETCD_ENABLE_V2: "true"
@@ -29,11 +28,46 @@ services:
     networks:
       apisix:
 
-  web_server_1:
+  web-server-1:
     image: nginx:alpine
-    restart: always
     networks:
       apisix:
+
+  web-server-2:
+    image: nginx:alpine
+    networks:
+      apisix:
+
+  redis-1:
+    image: redis:alpine
+    networks:
+      apisix:
+
+  apisix-standalone:
+    image: apache/apisix:3.9.1-debian
+    volumes:
+      - ./scripts/apisix_standalone:/usr/local/apisix/conf
+    ports:
+      - "4100:9180/tcp"
+      - "4000:9080/tcp"
+    networks:
+      apisix:
+
+  prometheus:
+    image: prom/prometheus:v2.36.2
+    volumes:
+      - ./scripts/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    networks:
+      - apisix
+
+  grafana:
+    image: grafana/grafana:8.3.3
+    ports:
+      - 7050:3000
+    networks:
+      - apisix
 
 networks:
   apisix:

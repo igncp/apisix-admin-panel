@@ -1,5 +1,8 @@
-use super::common::{PluginDefinition, PluginEntities, PluginOption, PluginPropertyType};
-use crate::macros::derive_common_default;
+use super::common::{PluginDefinition, PluginEntities, PluginOption};
+use crate::{
+    apisix::base::{PropertyType, Required},
+    macros::derive_common_default,
+};
 
 derive_common_default! {
 pub struct ConsumerBasicAuthPlugin(PluginDefinition);}
@@ -16,16 +19,16 @@ impl ConsumerBasicAuthPlugin {
                 PluginOption {
                     default_value: None,
                     description: "Unique username for a Consumer. If multiple Consumers use the same username, a request matching exception is raised.".to_string(),
-                    is_required: true,
+                    is_required: Required::True,
                     name: "username".to_string(),
-                    property_type: PluginPropertyType::String,
+                    property_type: PropertyType::String,
                 },
                 PluginOption {
                     default_value: None,
                     description: "Password of the user. This field supports saving the value in Secret Manager using the APISIX Secret resource.".to_string(),
-                    is_required: true,
+                    is_required: Required::True,
                     name: "password".to_string(),
-                    property_type: PluginPropertyType::String,
+                    property_type: PropertyType::String,
                 },
             ],
         })
@@ -48,9 +51,9 @@ impl RouteBasicAuthPlugin {
                 description:
                     "Set to true will not pass the authorization request headers to the Upstream."
                         .to_string(),
-                is_required: false,
+                is_required: Required::False,
                 name: "hide_credentials".to_string(),
-                property_type: PluginPropertyType::Boolean,
+                property_type: PropertyType::Boolean,
             }],
         })
     }

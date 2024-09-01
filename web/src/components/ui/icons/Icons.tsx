@@ -1,6 +1,7 @@
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
 import CloseIcon from "@mui/icons-material/Close";
+import CodeIcon from "@mui/icons-material/Code";
 import DeleteIcon from "@mui/icons-material/Delete";
 import GroupIcon from "@mui/icons-material/Group";
 import LanIcon from "@mui/icons-material/Lan";
@@ -12,6 +13,7 @@ export {
   AccountCircleIcon,
   AltRouteIcon,
   CloseIcon,
+  CodeIcon,
   DeleteIcon,
   GroupIcon,
   IconButton,

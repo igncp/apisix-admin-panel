@@ -19,13 +19,13 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Snackbar from "@mui/material/Snackbar";
 
 import {
-  createConsumer,
-  createConsumerGroup,
-  createRoute,
-  createSecret,
-  createService,
-  createStreamRoute,
-  createUpstream,
+  upsertConsumer,
+  upsertConsumerGroup,
+  upsertRoute,
+  upsertSecret,
+  upsertService,
+  upsertStreamRoute,
+  upsertUpstream,
   deleteConsumer,
   deleteConsumerGroup,
   deleteRoute,
@@ -33,6 +33,7 @@ import {
   deleteService,
   deleteStreamRoute,
   deleteUpstream,
+  getFileConfig,
   getHealthCheck,
   getSchema,
   reloadPlugins,
@@ -42,6 +43,7 @@ import {
   useFetchConsumers,
   useFetchRoutes,
   useFetchSecrets,
+  useFetchServerInfo,
   useFetchServices,
   useFetchStreamRoutes,
   useFetchUpstreams,
@@ -49,7 +51,7 @@ import {
 
 import type { EntityFieldsItems } from "./EntityField";
 import { EntityField, parseEntityFields } from "./EntityField";
-import { Form, Section } from "./Section";
+import { Form, Section, SubmitButton } from "./Section";
 import Button from "./ui/Button";
 import { EntitiesList } from "./ui/List";
 import TopBar from "./ui/TopBar";
@@ -97,6 +99,7 @@ const sectionTitleClass =
   "flex flex-row items-baseline justify-between w-full pr-[12px]";
 
 export default function Dashboard() {
+  const { serverInfo } = useFetchServerInfo();
   const { refetchRoutes, routes } = useFetchRoutes();
   const { refetchUpstreams, upstreams } = useFetchUpstreams();
   const { consumers, refetchConsumers } = useFetchConsumers();
@@ -104,6 +107,9 @@ export default function Dashboard() {
   const { refetchServices, services } = useFetchServices();
   const { refetchSecrets, secrets } = useFetchSecrets();
   const { refetchStreamRoutes, streamRoutes } = useFetchStreamRoutes();
+
+  const [openedForms, setOpenedForms] = useState(new Set<string>());
+  const [editingForms, setEditingForms] = useState(new Set<string>());
 
   const snackbarTimeout = useRef<null | number>(null);
 
@@ -140,6 +146,31 @@ export default function Dashboard() {
     return null;
   }
 
+  const setFormOpened =
+    (entity: { docs_key: string }) => (o: boolean, isEditing?: boolean) => {
+      if (o) {
+        setOpenedForms(new Set(openedForms).add(entity.docs_key));
+      } else {
+        openedForms.delete(entity.docs_key);
+        setOpenedForms(new Set(openedForms));
+      }
+
+      if (isEditing) {
+        if (o) {
+          setEditingForms(new Set(editingForms).add(entity.docs_key));
+        } else {
+          editingForms.delete(entity.docs_key);
+          setEditingForms(new Set(editingForms));
+        }
+      }
+    };
+
+  const getIsOpened = (entity: { docs_key: string }) =>
+    openedForms.has(entity.docs_key);
+
+  const getIsEditing = (entity: { docs_key: string }) =>
+    editingForms.has(entity.docs_key);
+
   const setSnackbar = (message: string) => {
     setSnackbarMessage(message);
     setSnackbarOpen(true);
@@ -162,6 +193,50 @@ export default function Dashboard() {
     throw err;
   };
 
+  const prepareEdit = (entity: { text: string }) => {
+    const parsed = JSON.parse(entity.text)?.value;
+
+    Object.keys(parsed).forEach((key) => {
+      if (key === "plugins") {
+        parsed.plugins = Object.entries(parsed.plugins).reduce(
+          (acc, [pluginName, pluginValue]) => {
+            const newPluginValue = Object.entries(
+              pluginValue as Record<string, unknown>,
+            ).reduce(
+              (acc2, [pluginOption, pluginOptionValue]) => {
+                if (typeof pluginOptionValue === "object") {
+                  acc2[pluginOption] = JSON.stringify(pluginOptionValue);
+                } else if (typeof pluginOptionValue === "boolean") {
+                  acc2[pluginOption] = pluginOptionValue.toString();
+                } else {
+                  acc2[pluginOption] = pluginOptionValue;
+                }
+
+                return acc2;
+              },
+              {
+                enabled: "true",
+              } as Record<string, unknown>,
+            );
+
+            acc[pluginName] = newPluginValue;
+
+            return acc;
+          },
+          {} as Record<string, Record<string, unknown>>,
+        );
+      } else {
+        if (typeof parsed[key] === "object") {
+          parsed[key] = JSON.stringify(parsed[key]);
+        } else if (typeof parsed[key] === "boolean") {
+          parsed[key] = parsed[key].toString();
+        }
+      }
+    });
+
+    return parsed;
+  };
+
   return (
     <>
       <Head>
@@ -169,54 +244,71 @@ export default function Dashboard() {
       </Head>
       <TopBar />
       <div className="m-auto max-w-[1024px] pb-[50px] pt-[100px]">
-        <Section
-          title={
-            <h2 className={sectionTitleClass}>
-              <span>Control Pane</span>
-              <DocsLink href="https://apisix.apache.org/docs/apisix/control-api" />
-            </h2>
-          }
-        >
-          <div className="flex flex-row gap-[12px]">
-            <Button
-              onClick={() => {
-                getSchema().then(setControlData).catch(setSnackbar);
-              }}
-            >
-              Get Schema
-            </Button>
-            <Button
-              onClick={() => {
-                getHealthCheck().then(setControlData).catch(setSnackbar);
-              }}
-            >
-              Get health check
-            </Button>
-            <Button
-              onClick={() => {
-                reloadPlugins()
-                  .then((r) =>
-                    setSnackbar(`Response: ${(r as string) || '""'}`),
-                  )
-                  .catch(setSnackbar);
-              }}
-            >
-              Reload plugins
-            </Button>
-          </div>
-          {!!controlData && (
-            <div>
-              <IconButton
-                aria-label="Clear"
-                edge="end"
-                onClick={() => setControlData(null)}
+        {serverInfo && !serverInfo.is_standalone && (
+          <Section
+            title={
+              <h2 className={sectionTitleClass}>
+                <span>Control Pane</span>
+                <DocsLink href="https://apisix.apache.org/docs/apisix/control-api" />
+              </h2>
+            }
+          >
+            <div className="flex flex-row gap-[12px]">
+              <Button
+                onClick={() => {
+                  getSchema().then(setControlData).catch(setSnackbar);
+                }}
               >
-                <DeleteIcon />
-              </IconButton>
-              <ReactJson src={controlData} theme="monokai" />
+                Get Schema
+              </Button>
+              <Button
+                onClick={() => {
+                  getHealthCheck().then(setControlData).catch(setSnackbar);
+                }}
+              >
+                Get health check
+              </Button>
+              <Button
+                onClick={() => {
+                  reloadPlugins()
+                    .then((r) =>
+                      setSnackbar(`Response: ${(r as string) || '""'}`),
+                    )
+                    .catch(setSnackbar);
+                }}
+              >
+                Reload plugins
+              </Button>
+              <Button
+                onClick={() => {
+                  getFileConfig()
+                    .then((r) => {
+                      setControlData(r);
+                    })
+                    .catch(() => {
+                      setSnackbar(
+                        "Failed to get file config, check apisix-admin-panel server logs",
+                      );
+                    });
+                }}
+              >
+                Get file config
+              </Button>
             </div>
-          )}
-        </Section>
+            {!!controlData && (
+              <div>
+                <IconButton
+                  aria-label="Clear"
+                  edge="end"
+                  onClick={() => setControlData(null)}
+                >
+                  <DeleteIcon />
+                </IconButton>
+                <ReactJson src={controlData} theme="monokai" />
+              </div>
+            )}
+          </Section>
+        )}
         <Section
           title={
             <h2 className={sectionTitleClass}>
@@ -226,16 +318,14 @@ export default function Dashboard() {
           }
         >
           <Form
+            isOpened={getIsOpened(WasmConsumer)}
             onSubmit={({ onComplete }) => {
-              Promise.resolve()
-                .then(() => {
-                  const consumer = parseEntityFields(
-                    WasmConsumer,
-                    consumerFields,
-                  );
+              const consumer = parseEntityFields(WasmConsumer, consumerFields);
 
-                  return createConsumer(consumer);
-                })
+              Promise.resolve()
+                .then(() =>
+                  upsertConsumer(consumer, getIsEditing(WasmConsumer)),
+                )
                 .then(() => refetchConsumers())
                 .then(() => {
                   setConsumerFields(null);
@@ -245,13 +335,15 @@ export default function Dashboard() {
                   setSnackbar(err);
                 });
             }}
+            setIsOpened={setFormOpened(WasmConsumer)}
           >
             <EntityField
               entity={WasmConsumer}
+              isEditing={getIsEditing(WasmConsumer)}
               items={consumerFields}
               setItems={setConsumerFields}
             />
-            <Button type="submit">Create</Button>
+            <SubmitButton isEditing={getIsEditing(WasmConsumer)} />
           </Form>
           {!!consumers && (
             <EntitiesList
@@ -266,6 +358,10 @@ export default function Dashboard() {
                   text: `Are you sure you want to delete consumer "${consumer.short_display}"?`,
                   title: "Delete consumer",
                 });
+              }}
+              onEdit={(consumer) => {
+                setConsumerFields(prepareEdit(consumer));
+                setFormOpened(WasmConsumer)(true, true);
               }}
             />
           )}
@@ -282,13 +378,17 @@ export default function Dashboard() {
           }
         >
           <Form
+            isOpened={getIsOpened(WasmConsumerGroup)}
             onSubmit={({ onComplete }) => {
               const group = parseEntityFields(
                 WasmConsumerGroup,
                 consumerGroupFields,
               );
 
-              createConsumerGroup(group)
+              Promise.resolve()
+                .then(() =>
+                  upsertConsumerGroup(group, getIsEditing(WasmConsumerGroup)),
+                )
                 .then(() => refetchConsumerGroups())
                 .then(() => {
                   setConsumerGroupFields(null);
@@ -298,13 +398,15 @@ export default function Dashboard() {
                   setSnackbar(err);
                 });
             }}
+            setIsOpened={setFormOpened(WasmConsumerGroup)}
           >
             <EntityField
               entity={WasmConsumerGroup}
+              isEditing={getIsEditing(WasmConsumerGroup)}
               items={consumerGroupFields}
               setItems={setConsumerGroupFields}
             />
-            <Button type="submit">Create</Button>
+            <SubmitButton isEditing={getIsEditing(WasmConsumerGroup)} />
           </Form>
           {!!consumerGroups && (
             <EntitiesList
@@ -320,6 +422,10 @@ export default function Dashboard() {
                   title: "Delete consumer group",
                 });
               }}
+              onEdit={(consumerGroup) => {
+                setConsumerGroupFields(prepareEdit(consumerGroup));
+                setFormOpened(WasmConsumerGroup)(true, true);
+              }}
             />
           )}
         </Section>
@@ -332,13 +438,12 @@ export default function Dashboard() {
           }
         >
           <Form
+            isOpened={getIsOpened(WasmRoute)}
             onSubmit={({ onComplete }) => {
-              Promise.resolve()
-                .then(() => {
-                  const route = parseEntityFields(WasmRoute, routeFields);
+              const route = parseEntityFields(WasmRoute, routeFields);
 
-                  return createRoute(route);
-                })
+              Promise.resolve()
+                .then(() => upsertRoute(route, getIsEditing(WasmRoute)))
                 .then(() => refetchRoutes())
                 .then(() => {
                   setRouteFields(null);
@@ -348,13 +453,15 @@ export default function Dashboard() {
                   setSnackbar(err);
                 });
             }}
+            setIsOpened={setFormOpened(WasmRoute)}
           >
             <EntityField
               entity={WasmRoute}
+              isEditing={getIsEditing(WasmRoute)}
               items={routeFields}
               setItems={setRouteFields}
             />
-            <Button type="submit">Create</Button>
+            <SubmitButton isEditing={getIsEditing(WasmRoute)} />
           </Form>
           {!!routes && (
             <EntitiesList
@@ -370,6 +477,10 @@ export default function Dashboard() {
                   title: "Delete route",
                 });
               }}
+              onEdit={(route) => {
+                setRouteFields(prepareEdit(route));
+                setFormOpened(WasmRoute)(true, true);
+              }}
             />
           )}
         </Section>
@@ -382,10 +493,12 @@ export default function Dashboard() {
           }
         >
           <Form
+            isOpened={getIsOpened(WasmSecret)}
             onSubmit={({ onComplete }) => {
               const secret = parseEntityFields(WasmSecret, secretFields);
 
-              createSecret(secret)
+              Promise.resolve()
+                .then(() => upsertSecret(secret, getIsEditing(WasmSecret)))
                 .then(() => refetchSecrets())
                 .then(() => {
                   setSecretFields(null);
@@ -395,13 +508,15 @@ export default function Dashboard() {
                   setSnackbar(err);
                 });
             }}
+            setIsOpened={setFormOpened(WasmSecret)}
           >
             <EntityField
               entity={WasmSecret}
+              isEditing={getIsEditing(WasmSecret)}
               items={secretFields}
               setItems={setSecretFields}
             />
-            <Button type="submit">Create</Button>
+            <SubmitButton isEditing={getIsEditing(WasmSecret)} />
           </Form>
           {!!secrets && (
             <EntitiesList
@@ -417,6 +532,10 @@ export default function Dashboard() {
                   title: "Delete secret",
                 });
               }}
+              onEdit={(secret) => {
+                setSecretFields(prepareEdit(secret));
+                setFormOpened(WasmSecret)(true, true);
+              }}
             />
           )}
         </Section>
@@ -429,11 +548,12 @@ export default function Dashboard() {
           }
         >
           <Form
+            isOpened={getIsOpened(WasmService)}
             onSubmit={({ onComplete }) => {
               const service = parseEntityFields(WasmService, serviceFields);
 
               Promise.resolve()
-                .then(() => createService(service))
+                .then(() => upsertService(service, getIsEditing(WasmService)))
                 .then(() => setServiceFields(null))
                 .then(() => {
                   refetchServices();
@@ -443,13 +563,15 @@ export default function Dashboard() {
                   setSnackbar(err);
                 });
             }}
+            setIsOpened={setFormOpened(WasmService)}
           >
             <EntityField
               entity={WasmService}
+              isEditing={getIsEditing(WasmService)}
               items={serviceFields}
               setItems={setServiceFields}
             />
-            <Button type="submit">Create</Button>
+            <SubmitButton isEditing={getIsEditing(WasmService)} />
           </Form>
           {!!services && (
             <EntitiesList
@@ -467,6 +589,10 @@ export default function Dashboard() {
                   title: "Delete service",
                 });
               }}
+              onEdit={(service) => {
+                setServiceFields(prepareEdit(service));
+                setFormOpened(WasmService)(true, true);
+              }}
             />
           )}
         </Section>
@@ -481,13 +607,17 @@ export default function Dashboard() {
           }
         >
           <Form
+            isOpened={getIsOpened(WasmStreamRoute)}
             onSubmit={({ onComplete }) => {
               const streamRoute = parseEntityFields(
                 WasmStreamRoute,
                 streamRouteFields,
               );
 
-              createStreamRoute(streamRoute)
+              Promise.resolve()
+                .then(() =>
+                  upsertStreamRoute(streamRoute, getIsEditing(WasmStreamRoute)),
+                )
                 .then(() => refetchStreamRoutes())
                 .then(() => {
                   setStreamRouteFields(null);
@@ -497,13 +627,15 @@ export default function Dashboard() {
                   setSnackbar(err);
                 });
             }}
+            setIsOpened={setFormOpened(WasmStreamRoute)}
           >
             <EntityField
               entity={WasmStreamRoute}
+              isEditing={getIsEditing(WasmStreamRoute)}
               items={streamRouteFields}
               setItems={setStreamRouteFields}
             />
-            <Button type="submit">Create</Button>
+            <SubmitButton isEditing={getIsEditing(WasmStreamRoute)} />
           </Form>
           {!!streamRoutes && (
             <EntitiesList
@@ -519,6 +651,10 @@ export default function Dashboard() {
                   title: "Delete stream route",
                 });
               }}
+              onEdit={(streamRoute) => {
+                setStreamRouteFields(prepareEdit(streamRoute));
+                setFormOpened(WasmStreamRoute)(true, true);
+              }}
             />
           )}
         </Section>
@@ -531,10 +667,14 @@ export default function Dashboard() {
           }
         >
           <Form
+            isOpened={getIsOpened(WasmUpstream)}
             onSubmit={({ onComplete }) => {
               const upstream = parseEntityFields(WasmUpstream, upstreamFields);
 
-              createUpstream(upstream)
+              Promise.resolve()
+                .then(() =>
+                  upsertUpstream(upstream, getIsEditing(WasmUpstream)),
+                )
                 .then(() => refetchUpstreams())
                 .then(() => {
                   setUpstreamFields(null);
@@ -544,13 +684,15 @@ export default function Dashboard() {
                   setSnackbar(err);
                 });
             }}
+            setIsOpened={setFormOpened(WasmUpstream)}
           >
             <EntityField
               entity={WasmUpstream}
+              isEditing={getIsEditing(WasmUpstream)}
               items={upstreamFields}
               setItems={setUpstreamFields}
             />
-            <Button type="submit">Create</Button>
+            <SubmitButton isEditing={getIsEditing(WasmUpstream)} />
           </Form>
           {!!upstreams && (
             <EntitiesList
@@ -565,6 +707,10 @@ export default function Dashboard() {
                   text: `Are you sure you want to delete upstream "${upstream.short_display}"?`,
                   title: "Delete upstream",
                 });
+              }}
+              onEdit={(upstream) => {
+                setUpstreamFields(prepareEdit(upstream));
+                setFormOpened(WasmUpstream)(true, true);
               }}
             />
           )}

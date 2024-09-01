@@ -1,5 +1,4 @@
 import type { PropsWithChildren, ReactNode } from "react";
-import { useState } from "react";
 
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Accordion from "@mui/material/Accordion";
@@ -33,12 +32,17 @@ const formClasses =
   "flex flex-col gap-[12px] items-start w-full py-[12px] p-[12px]";
 
 type FormProps = PropsWithChildren<{
+  isOpened: boolean;
   onSubmit: (o: { onComplete: () => void }) => void;
+  setIsOpened: (o: boolean) => void;
 }>;
 
-export const Form = ({ children, onSubmit }: FormProps) => {
-  const [isOpened, setIsOpened] = useState(false);
-
+export const Form = ({
+  children,
+  isOpened,
+  onSubmit,
+  setIsOpened,
+}: FormProps) => {
   if (!isOpened) {
     return (
       <Button
@@ -79,3 +83,11 @@ export const Form = ({ children, onSubmit }: FormProps) => {
     </form>
   );
 };
+
+type SubmitButtonProps = {
+  isEditing: boolean;
+};
+
+export const SubmitButton = ({ isEditing }: SubmitButtonProps) => (
+  <Button type="submit">{isEditing ? "Save" : "Create"}</Button>
+);

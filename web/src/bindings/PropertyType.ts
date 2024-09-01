@@ -2,8 +2,9 @@
 
 export type PropertyType =
   | "Boolean"
+  | "JSON"
   | "Number"
   | "Plugins"
   | "String"
-  | "Value"
+  | { "Enum": string[] }
   | { "List": PropertyType };

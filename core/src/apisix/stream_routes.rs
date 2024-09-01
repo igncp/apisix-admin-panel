@@ -1,55 +1,43 @@
 use super::{
-    common::{Entity, EntityFields, EntityValue, GetListResponse, Unit},
+    common::{prelude::*, Entity, EntityFields, EntityValue, GetListResponse, Unit},
     plugins::common::PluginEntities,
 };
-use crate::{
-    apisix::common::Required,
-    macros::derive_common_default,
-    proxy::{ProxyFetchMethod, ProxyFetchOpts},
-};
+use crate::{apisix::base::Required, macros::derive_common_default, proxy::ProxyFetchOpts};
 
 derive_common_default! {
 pub struct StreamRouteValue(pub EntityValue);}
 
 pub type StreamRoute = Unit<StreamRouteValue>;
 
-impl StreamRoute {
-    pub const API_PREFIX: &'static str = "/stream_routes";
-    pub const DISPLAY_LONG: &'static [&'static str] = &[];
-    pub const DISPLAY_SHORT: &'static [&'static str] = &[];
-    pub const DOCS_KEY: &'static str = "stream-route";
-    pub const PLUGIN_ENTITY: Option<PluginEntities> = None;
-    pub const REQUIRED_VERSION: &'static str = "3.2.1";
+impl EntityItemTrait for StreamRoute {
+    const API_PREFIX: &'static str = "/stream_routes";
+    const DOCS_KEY: &'static str = "stream-route";
+    const PLUGIN_ENTITY: Option<PluginEntities> = None;
+    const REQUIRED_VERSION: Option<&'static str> = Some("3.2.1");
+
+    entity_trait_get_value!();
 }
 
 pub type StreamRouteEntity = Entity<StreamRoute>;
 
 pub type GetStreamRoutesResponse = GetListResponse<StreamRoute>;
 
-impl StreamRouteEntity {
-    pub fn create(&self) -> Result<ProxyFetchOpts, String> {
-        let new_route_values = self.parsed.value.0.get_cloned();
-        let opts = serde_json::to_string(&new_route_values).unwrap();
+impl EntityTrait for StreamRouteEntity {
+    fn create(&self) -> Result<ProxyFetchOpts, String> {
+        let (id, data) = self.get_common_parsed_values();
+        let (uri, method) = EntityValue::common_create(StreamRoute::API_PREFIX, id);
 
-        Ok(ProxyFetchOpts {
-            uri: StreamRoute::API_PREFIX.to_string(),
-            method: ProxyFetchMethod::POST,
-            data: Some(opts),
-        })
+        Ok(ProxyFetchOpts { uri, method, data })
     }
 
-    pub fn delete(&self) -> Result<ProxyFetchOpts, String> {
-        let uri = format!(
-            "{}/{}",
-            StreamRoute::API_PREFIX,
-            self.parsed.value.0.get_str("id")
-        );
-        ProxyFetchOpts::del(uri)
-    }
-}
+    fn update(&self) -> Result<ProxyFetchOpts, String> {
+        let (id, data) = self.get_common_parsed_values();
+        let (uri, method) = EntityValue::common_update(StreamRoute::API_PREFIX, id);
 
-impl StreamRouteEntity {
-    pub fn value_fields() -> Vec<EntityFields> {
+        Ok(ProxyFetchOpts { uri, method, data })
+    }
+
+    fn value_fields() -> Vec<EntityFields> {
         vec![
             EntityFields {
                 description: "Id of the Upstream service.".to_string(),
@@ -62,9 +50,9 @@ impl StreamRouteEntity {
                 ..Default::default()
             },
             EntityFields {
-                hidden: true,
                 is_required: Required::True,
                 name: "id".to_string(),
+                is_editable: false,
                 ..Default::default()
             },
         ]

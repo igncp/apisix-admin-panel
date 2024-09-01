@@ -1,3 +1,4 @@
+pub mod base;
 pub mod common;
 pub mod consumer_groups;
 pub mod consumers;

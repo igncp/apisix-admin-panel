@@ -4,7 +4,7 @@ Unofficial web UI for managing Apache APISIX. Even if there is already the
 [APISIX dashboard project](https://github.com/apache/apisix-dashboard), this
 projects aims to be an alternative solution.
 
-## Principles
+## Intoduction
 
 - Lightweight: Should be fast, low in memory (currently ~5mb), and small in size (currently ~10mb)
 - Powerful: It should support more features than the official dashboard project
@@ -13,6 +13,8 @@ projects aims to be an alternative solution.
 To achieve this the tech stack uses Rust in the backend and in the frontend
 (via WebAssembly). There is also some code using JavaScript for the frontend UI
 which is built into static files.
+
+It supports both [Standalone deployments](https://apisix.apache.org/docs/apisix/deployment-modes/#standalone) via updating the config file, and [Traditional deployments](https://apisix.apache.org/docs/apisix/deployment-modes/#traditional) via API requests.
 
 ## Try it out
 
@@ -55,19 +57,21 @@ instance of APISIX where to test the project. PRs are welcomed.
 For the MVP, the following features are planned:
 
 - ... Most features included in the official dashboard (some of them included here)
-- Multi-arch docker images
 - Multilanguage
 - Responsive
 - Dark mode
 - Support all built-in plugins
 - Input validations
 - Authentication
-- Edit form
 
 ## Ideas for features
 
 - Bulk updates
 - Pagination
 - Support all control APIs
-- Support changing the YAML configuration via docker volume
 - Support configuring custom plugins
+- E2E tests with playwright
+- Export/Import
+- Backups
+- Search: https://apisix.apache.org/docs/apisix/admin-api/#support-filtering-query
+- Use the official dashboard in the docker compose

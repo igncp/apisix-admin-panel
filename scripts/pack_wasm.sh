@@ -12,6 +12,10 @@ cd core
 cargo test
 cd ..
 
+cd server
+cargo test
+cd ..
+
 cd wasm
 wasm-pack build
 

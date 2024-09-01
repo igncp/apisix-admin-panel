@@ -12,6 +12,8 @@ pub(crate) use derive_common;
 
 macro_rules! entity_impl {
     ($structname: ident, $entity_struct: ident) => {
+        use apisix_admin_panel_core::apisix::common::prelude::*;
+
         #[wasm_bindgen::prelude::wasm_bindgen]
         impl $structname {
             #[wasm_bindgen(constructor)]
@@ -20,7 +22,7 @@ macro_rules! entity_impl {
             }
 
             #[wasm_bindgen(getter)]
-            pub fn key(&self) -> String {
+            pub fn key(&self) -> Option<String> {
                 self.0.parsed.key.clone()
             }
 
@@ -93,6 +95,10 @@ macro_rules! entity_impl {
 
             pub fn create(&self) -> Result<crate::proxy::WasmProxyFetchOpts, String> {
                 self.0.create().map(Into::into)
+            }
+
+            pub fn update(&self) -> Result<crate::proxy::WasmProxyFetchOpts, String> {
+                self.0.update().map(Into::into)
             }
         }
     };
@@ -202,9 +208,10 @@ macro_rules! entity_fields_impl {
                     .list
                     .iter()
                     .map(|s| {
-                        let text = serde_json::to_string(s).unwrap();
+                        let text = serde_json::to_string(s)
+                            .map_err(|_| "Error serializing".to_string())?;
                         let mut parsed: $core_struct = serde_json::from_str(&text)
-                            .map_err(|_| "Error parsing item".to_string())?;
+                            .map_err(|e| format!("Error parsing item {:?}", e).to_string())?;
                         let value: serde_json::Value = s
                             .get("value")
                             .map(|v| v.clone())

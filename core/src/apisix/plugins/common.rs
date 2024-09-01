@@ -1,6 +1,8 @@
+use crate::{
+    apisix::base::{PropertyType, Required},
+    macros::derive_common_default,
+};
 use std::collections::HashSet;
-
-use crate::macros::derive_common_default;
 use ts_rs::TS;
 
 derive_common_default! {
@@ -16,27 +18,14 @@ pub enum PluginEntities {
 }}
 
 derive_common_default! {
-#[derive(TS, Hash, Eq, PartialEq)]
-#[ts(export)]
-pub enum PluginPropertyType {
-    #[default]
-    String,
-    Boolean,
-    Number,
-    Value,
-    List(Box<PluginPropertyType>),
-    Enum(Vec<String>),
-}}
-
-derive_common_default! {
 #[derive(TS)]
 #[ts(export)]
 pub struct PluginOption {
     pub default_value: Option<String>,
     pub description: String,
-    pub is_required: bool,
+    pub is_required: Required,
     pub name: String,
-    pub property_type: PluginPropertyType,
+    pub property_type: PropertyType,
 }}
 
 derive_common_default! {

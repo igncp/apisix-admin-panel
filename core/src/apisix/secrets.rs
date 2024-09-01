@@ -1,9 +1,9 @@
 use super::{
-    common::{Entity, EntityValue, GetListResponse, Unit},
+    common::{prelude::*, Entity, EntityValue, GetListResponse, Unit},
     plugins::common::PluginEntities,
 };
 use crate::{
-    apisix::common::{EntityFields, Required},
+    apisix::{base::Required, common::EntityFields},
     macros::derive_common_default,
     proxy::{ProxyFetchMethod, ProxyFetchOpts},
 };
@@ -13,22 +13,20 @@ pub struct SecretValue(pub EntityValue);}
 
 pub type Secret = Unit<SecretValue>;
 
-impl Secret {
-    pub const API_PREFIX: &'static str = "/secrets";
-    pub const DISPLAY_LONG: &'static [&'static str] = &[];
-    pub const DISPLAY_SHORT: &'static [&'static str] = &[];
-    pub const DOCS_KEY: &'static str = "secret";
-    pub const PLUGIN_ENTITY: Option<PluginEntities> = None;
+impl EntityItemTrait for Secret {
+    const API_PREFIX: &'static str = "/secrets/vault";
+    const DOCS_KEY: &'static str = "secret";
+    const PLUGIN_ENTITY: Option<PluginEntities> = None;
+
+    entity_trait_get_value!();
 }
 
 pub type GetSecretsResponse = GetListResponse<Secret>;
 pub type SecretEntity = Entity<Secret>;
 
-impl SecretEntity {
-    pub fn create(&self) -> Result<ProxyFetchOpts, String> {
-        let new_route_values = self.parsed.value.0.get_cloned();
-
-        let data = serde_json::to_string(&new_route_values).ok();
+impl EntityTrait for SecretEntity {
+    fn create(&self) -> Result<ProxyFetchOpts, String> {
+        let (_, data) = self.get_common_parsed_values();
         let uri = format!("{}/vault", Secret::API_PREFIX).to_string();
 
         Ok(ProxyFetchOpts {
@@ -38,15 +36,18 @@ impl SecretEntity {
         })
     }
 
-    pub fn delete(&self) -> Result<ProxyFetchOpts, String> {
-        let id = self.parsed.value.0.get("id").unwrap().as_str().unwrap();
-        let uri = format!("{}/vault/{}", Secret::API_PREFIX, id);
-        ProxyFetchOpts::del(uri)
-    }
-}
+    fn update(&self) -> Result<ProxyFetchOpts, String> {
+        let (id, data) = self.get_common_parsed_values();
+        let uri = format!("{}/vault/{}", Secret::API_PREFIX, id).to_string();
 
-impl SecretEntity {
-    pub fn value_fields() -> Vec<EntityFields> {
+        Ok(ProxyFetchOpts {
+            uri,
+            method: ProxyFetchMethod::PATCH,
+            data,
+        })
+    }
+
+    fn value_fields() -> Vec<EntityFields> {
         vec![
             EntityFields {
                 description:
@@ -74,9 +75,9 @@ impl SecretEntity {
                 ..EntityFields::default()
             },
             EntityFields {
-                hidden: true,
                 is_required: Required::True,
                 name: "id".to_string(),
+                is_editable: false,
                 ..EntityFields::default()
             },
         ]

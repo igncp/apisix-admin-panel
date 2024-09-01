@@ -9,6 +9,7 @@ import {
   WasmStreamRoute,
   WasmUpstream,
 } from "pkg";
+import type { ServerInfo } from "src/bindings/ServerInfo";
 
 const baseUrl =
   process.env.NODE_ENV === "production" ? "" : "http://localhost:9000";
@@ -59,20 +60,21 @@ const deleteMethod =
       .then(() => fetchApisixAdmin(item.delete()))
       .then((r) => c.delete_response(r));
 
-const createMethod =
+const upsertMethod =
   <
     A extends {
       create_response: (r: unknown) => void;
       new (): {
         create: () => WasmProxyFetchOpts;
+        update: () => WasmProxyFetchOpts;
       };
     },
   >(
     c: A,
   ) =>
-  (item: InstanceType<A>) =>
+  (item: InstanceType<A>, isEditing: boolean) =>
     Promise.resolve()
-      .then(() => fetchApisixAdmin(item.create()))
+      .then(() => fetchApisixAdmin(isEditing ? item.update() : item.create()))
       .then((r) => c.create_response(r));
 
 export const getConsumerGroups = genGetMethod(WasmConsumerGroup);
@@ -91,16 +93,29 @@ export const deleteService = deleteMethod(WasmService);
 export const deleteStreamRoute = deleteMethod(WasmStreamRoute);
 export const deleteUpstream = deleteMethod(WasmUpstream);
 
-export const createConsumer = createMethod(WasmConsumer);
-export const createConsumerGroup = createMethod(WasmConsumerGroup);
-export const createRoute = createMethod(WasmRoute);
-export const createSecret = createMethod(WasmSecret);
-export const createService = createMethod(WasmService);
-export const createStreamRoute = createMethod(WasmStreamRoute);
-export const createUpstream = createMethod(WasmUpstream);
+export const upsertConsumer = upsertMethod(WasmConsumer);
+export const upsertConsumerGroup = upsertMethod(WasmConsumerGroup);
+export const upsertRoute = upsertMethod(WasmRoute);
+export const upsertSecret = upsertMethod(WasmSecret);
+export const upsertService = upsertMethod(WasmService);
+export const upsertStreamRoute = upsertMethod(WasmStreamRoute);
+export const upsertUpstream = upsertMethod(WasmUpstream);
 
 export const getSchema = () => fetchApisixControl(WasmControlPane.get_schema());
 export const getHealthCheck = () =>
   fetchApisixControl(WasmControlPane.get_health_check());
 export const reloadPlugins = () =>
   fetchApisixControl(WasmControlPane.reload_plugins());
+export const getFileConfig = () =>
+  fetch(`${baseUrl}/api/apisix-config`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  }).then((res) => res.json() as unknown);
+
+export const getServerInfo = async (): Promise<ServerInfo> =>
+  fetch(`${baseUrl}/api/info`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  }).then((res) => res.json() as unknown as ServerInfo);

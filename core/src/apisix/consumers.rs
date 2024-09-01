@@ -1,9 +1,9 @@
 use super::{
-    common::{Entity, EntityFields, EntityValue, GetListResponse, Unit},
+    common::{prelude::*, Entity, EntityFields, EntityValue, GetListResponse, Unit},
     plugins::common::PluginEntities,
 };
 use crate::{
-    apisix::common::{PropertyType, Required},
+    apisix::base::{PropertyType, Required},
     macros::derive_common_default,
     proxy::{ProxyFetchMethod, ProxyFetchOpts},
 };
@@ -13,21 +13,23 @@ pub struct ConsumerValue(pub EntityValue);}
 
 pub type Consumer = Unit<ConsumerValue>;
 
-impl Consumer {
-    pub const API_PREFIX: &'static str = "/consumers";
-    pub const DISPLAY_LONG: &'static [&'static str] = &[];
-    pub const DISPLAY_SHORT: &'static [&'static str] = &["username"];
-    pub const DOCS_KEY: &'static str = "consumer";
-    pub const PLUGIN_ENTITY: Option<PluginEntities> = Some(PluginEntities::Consumer);
-}
-
 pub type ConsumerEntity = Entity<Consumer>;
+
+impl EntityItemTrait for Consumer {
+    const API_PREFIX: &'static str = "/consumers";
+    const DISPLAY_SHORT: &'static [&'static str] = &["username"];
+    const DOCS_KEY: &'static str = "consumer";
+    const ID_NAME: &'static str = "username";
+    const PLUGIN_ENTITY: Option<PluginEntities> = Some(PluginEntities::Consumer);
+
+    entity_trait_get_value!();
+}
 
 pub type GetConsumersResponse = GetListResponse<Consumer>;
 
-impl ConsumerEntity {
-    pub fn create(&self) -> Result<ProxyFetchOpts, String> {
-        let new_route_values = self.parsed.value.0.get_cloned();
+impl EntityTrait for ConsumerEntity {
+    fn create(&self) -> Result<ProxyFetchOpts, String> {
+        let new_route_values = self.parsed.get_cloned();
         let opts = serde_json::to_string(&new_route_values).unwrap();
 
         Ok(ProxyFetchOpts {
@@ -37,23 +39,24 @@ impl ConsumerEntity {
         })
     }
 
-    pub fn delete(&self) -> Result<ProxyFetchOpts, String> {
-        let uri = format!(
-            "{}/{}",
-            Consumer::API_PREFIX,
-            self.parsed.value.0.get_str("username")
-        );
-        ProxyFetchOpts::del(uri)
-    }
-}
+    fn update(&self) -> Result<ProxyFetchOpts, String> {
+        let new_route_values = self.parsed.get_cloned();
+        let opts = serde_json::to_string(&new_route_values).unwrap();
 
-impl ConsumerEntity {
-    pub fn value_fields() -> Vec<EntityFields> {
+        Ok(ProxyFetchOpts {
+            uri: Consumer::API_PREFIX.to_string(),
+            method: ProxyFetchMethod::PUT,
+            data: Some(opts),
+        })
+    }
+
+    fn value_fields() -> Vec<EntityFields> {
         vec![
             EntityFields {
                 description: "Name of the Consumer.".to_string(),
                 is_required: Required::True,
                 name: "username".to_string(),
+                is_editable: false,
                 ..EntityFields::default()
             },
             EntityFields {

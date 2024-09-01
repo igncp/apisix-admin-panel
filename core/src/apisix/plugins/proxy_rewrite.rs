@@ -1,5 +1,5 @@
-use super::common::{PluginDefinition, PluginEntities, PluginOption, PluginPropertyType};
-use crate::macros::derive_common_default;
+use super::common::{PluginDefinition, PluginEntities, PluginOption};
+use crate::{apisix::base::PropertyType, macros::derive_common_default};
 
 derive_common_default! {
 pub struct ProxyRewritePlugin(PluginDefinition);}
@@ -22,7 +22,7 @@ impl ProxyRewritePlugin {
                 },
                 PluginOption {
                     name: "regex_uri".to_string(),
-                    property_type: PluginPropertyType::List(Box::new(PluginPropertyType::String)),
+                    property_type: PropertyType::List(Box::new(PropertyType::String)),
                     ..Default::default()
                 },
                 PluginOption {
@@ -32,13 +32,13 @@ impl ProxyRewritePlugin {
                 },
                 PluginOption {
                     name: "headers".to_string(),
-                    property_type: PluginPropertyType::Value,
+                    property_type: PropertyType::JSON,
                     ..Default::default()
                 },
                 PluginOption {
                     name: "use_real_request_uri_unsafe".to_string(),
                     description: "Use real_request_uri (original $request_uri in nginx) to bypass URI normalization. Enabling this is considered unsafe as it bypasses all URI normalization steps.".to_string(),
-                    property_type: PluginPropertyType::Boolean,
+                    property_type: PropertyType::Boolean,
                     ..Default::default()
                 }
             ],

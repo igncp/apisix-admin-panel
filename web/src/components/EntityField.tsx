@@ -2,12 +2,9 @@ import { memo } from "react";
 import type { EntityFields } from "src/bindings/EntityFields";
 import type { PluginEntities } from "src/bindings/PluginEntities";
 
+import { MultiField } from "./MultiField";
 import { parsePlugins, PluginsField } from "./PluginsField";
 import type { PluginsState } from "./PluginsField";
-import Button from "./ui/Button";
-import { Input } from "./ui/Input";
-import { Text } from "./ui/Text";
-import { DeleteIcon, IconButton } from "./ui/icons/Icons";
 
 export type EntityFieldsItems = null | Record<
   string,
@@ -48,7 +45,7 @@ export const parseEntityFields = <
     const { name: itemName } = fieldDefinition;
 
     switch (fieldDefinition.property_type) {
-      case "Value": {
+      case "JSON": {
         const value = (() => {
           try {
             return JSON.parse(itemValue as string);
@@ -102,7 +99,7 @@ export const parseEntityFields = <
         if (
           typeof fieldDefinition.property_type === "object" &&
           "List" in fieldDefinition.property_type &&
-          fieldDefinition.property_type.List === "Value"
+          fieldDefinition.property_type.List === "JSON"
         ) {
           if (!itemValue) {
             break;
@@ -135,11 +132,12 @@ type Props = {
     fields_definitions: () => EntityFields[];
     plugin_entity: string;
   };
+  isEditing: boolean;
   items: EntityFieldsItems;
   setItems: (items: EntityFieldsItems) => void;
 };
 
-const EntityFieldBase = ({ entity, items, setItems }: Props) => {
+const EntityFieldBase = ({ entity, isEditing, items, setItems }: Props) => {
   const fieldsDefinitions = entity.fields_definitions();
 
   const getSortVal = (a: EntityFields) => {
@@ -185,131 +183,14 @@ const EntityFieldBase = ({ entity, items, setItems }: Props) => {
             );
           }
 
-          const fieldValue = items?.[name];
-
-          if (
-            typeof fieldDefinition.property_type === "object" &&
-            "List" in fieldDefinition.property_type
-          ) {
-            const parsedItems = (fieldValue as string[] | undefined) || [];
-            const isJSON = fieldDefinition.property_type.List === "Value";
-
-            return (
-              <div className="flex flex-col gap-[12px]" key={name}>
-                <div className="flex flex-row items-baseline gap-[12px]">
-                  <Text>{name}</Text>
-                  <Button
-                    onClick={() => {
-                      setItems({
-                        ...items,
-                        [name]: [...parsedItems, ""],
-                      });
-                    }}
-                  >
-                    +
-                  </Button>
-                </div>
-                {fieldDefinition.description && (
-                  <Text className="text-[#aaa]">
-                    {fieldDefinition.description}
-                  </Text>
-                )}
-                {parsedItems.map((value, index) => {
-                  const isValid = (() => {
-                    if (!isJSON || !value) {
-                      return true;
-                    }
-
-                    try {
-                      JSON.parse(value);
-
-                      return true;
-                    } catch {
-                      return false;
-                    }
-                  })();
-
-                  return (
-                    <div className="flex flex-row gap-[12px]" key={index}>
-                      <Input
-                        error={!isValid}
-                        multiline={isJSON}
-                        onChange={(e) => {
-                          setItems({
-                            ...items,
-                            [name]: parsedItems.map((v, i) =>
-                              i === index ? e.target.value : v,
-                            ),
-                          });
-                        }}
-                        placeholder={`${name} #${index + 1}${isJSON ? " (JSON)" : ""}`}
-                        value={value}
-                      />
-                      <IconButton
-                        aria-label="Clear"
-                        edge="end"
-                        onClick={() => {
-                          let newList: string[] | undefined =
-                            parsedItems.filter((_, i) => i !== index);
-
-                          if (newList.length === 0) {
-                            newList = undefined;
-                          }
-
-                          setItems({
-                            ...items,
-                            [name]: newList,
-                          });
-                        }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          }
-
-          const hasError = (() => {
-            if (fieldDefinition.property_type !== "Value" || !fieldValue) {
-              return false;
-            }
-
-            try {
-              JSON.parse(fieldValue as string);
-
-              return false;
-            } catch {
-              return true;
-            }
-          })();
-
-          const fieldText =
-            name +
-            (fieldDefinition.is_required !== "False" ? "*" : "") +
-            (fieldDefinition.property_type === "Value" ? " (JSON)" : "");
-
           return (
-            <Input
-              error={hasError}
-              helperText={fieldDefinition.description || undefined}
+            <MultiField
+              definition={fieldDefinition}
+              isEditing={isEditing}
               key={name}
-              label={fieldText}
-              multiline={fieldDefinition.property_type === "Value"}
-              onChange={(e) => {
-                setItems({
-                  ...items,
-                  [name]: e.target.value,
-                });
-              }}
-              placeholder={
-                (fieldDefinition.example
-                  ? `Example: ${fieldDefinition.example}`
-                  : "") || fieldText
-              }
-              type="text"
-              value={fieldValue || ""}
+              prefix={name}
+              setState={setItems}
+              state={items as Record<string, string | string[] | undefined>}
             />
           );
         })}

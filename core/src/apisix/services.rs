@@ -1,67 +1,49 @@
 use super::{
-    common::{Entity, EntityFields, EntityValue, GetListResponse, Unit},
+    common::{prelude::*, Entity, EntityFields, EntityValue, GetListResponse, Unit},
     plugins::common::PluginEntities,
 };
-use crate::{
-    apisix::common::PropertyType,
-    macros::derive_common_default,
-    proxy::{ProxyFetchMethod, ProxyFetchOpts},
-};
+use crate::{apisix::base::PropertyType, macros::derive_common_default, proxy::ProxyFetchOpts};
 
 derive_common_default! {
 pub struct ServiceValue(pub EntityValue);}
 
 pub type Service = Unit<ServiceValue>;
 
-impl Service {
-    pub const API_PREFIX: &'static str = "/services";
-    pub const DISPLAY_LONG: &'static [&'static str] = &[];
-    pub const DISPLAY_SHORT: &'static [&'static str] = &[];
-    pub const DOCS_KEY: &'static str = "service";
-    pub const PLUGIN_ENTITY: Option<PluginEntities> = Some(PluginEntities::Service);
+impl EntityItemTrait for Service {
+    const API_PREFIX: &'static str = "/services";
+    const DISPLAY_LONG: &'static [&'static str] = &[];
+    const DISPLAY_SHORT: &'static [&'static str] = &[];
+    const DOCS_KEY: &'static str = "service";
+    const PLUGIN_ENTITY: Option<PluginEntities> = Some(PluginEntities::Service);
+
+    entity_trait_get_value!();
 }
 
 pub type ServiceEntity = Entity<Service>;
 
 pub type GetServicesResponse = GetListResponse<Service>;
 
-impl ServiceEntity {
-    pub fn create(&self) -> Result<ProxyFetchOpts, String> {
-        let mut values = self.parsed.value.0.get_cloned();
-        let id = self.parsed.value.0.get_str("id");
-        values.remove("id");
-        let uri = format!(
-            "{}{}",
-            Service::API_PREFIX,
-            if id.is_empty() {
-                "".to_string()
-            } else {
-                format!("/{}", id)
-            }
-        );
-        let method = if id.is_empty() {
-            ProxyFetchMethod::POST
-        } else {
-            ProxyFetchMethod::PUT
-        };
-        let data = serde_json::to_string(&values).ok();
+impl EntityTrait for ServiceEntity {
+    fn create(&self) -> Result<ProxyFetchOpts, String> {
+        let (id, data) = self.get_common_parsed_values();
+        let (uri, method) = EntityValue::common_create(Service::API_PREFIX, id);
 
         Ok(ProxyFetchOpts { uri, method, data })
     }
 
-    pub fn delete(&self) -> Result<ProxyFetchOpts, String> {
-        let id = self.parsed.value.0.get("id").unwrap().as_str().unwrap();
-        let uri = format!("{}/{}", Service::API_PREFIX, id);
-        ProxyFetchOpts::del(uri)
-    }
-}
+    fn update(&self) -> Result<ProxyFetchOpts, String> {
+        let (id, data) = self.get_common_parsed_values();
+        let (uri, method) = EntityValue::common_update(Service::API_PREFIX, id);
 
-impl ServiceEntity {
-    pub fn value_fields() -> Vec<EntityFields> {
+        Ok(ProxyFetchOpts { uri, method, data })
+    }
+
+    fn value_fields() -> Vec<EntityFields> {
         vec![
             EntityFields {
                 description: "Unique text within the services".to_string(),
                 name: "id".to_string(),
+                is_editable: false,
                 ..EntityFields::default()
             },
             EntityFields {
@@ -78,7 +60,7 @@ impl ServiceEntity {
             EntityFields {
                 description: "Configuration of the Upstream.".to_string(),
                 name: "upstream".to_string(),
-                property_type: PropertyType::Value,
+                property_type: PropertyType::JSON,
                 ..EntityFields::default()
             },
             EntityFields {
@@ -94,7 +76,7 @@ impl ServiceEntity {
             EntityFields {
                 description: "Attributes of the Service specified as key-value pairs.".to_string(),
                 name: "labels".to_string(),
-                property_type: PropertyType::Value,
+                property_type: PropertyType::JSON,
                 ..EntityFields::default()
             },
             EntityFields {

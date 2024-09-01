@@ -4,3 +4,4 @@ node_modules
 .next
 server/src/generated/proto/main.rs
 pkg
+scripts/apisix_standalone/apisix.yaml

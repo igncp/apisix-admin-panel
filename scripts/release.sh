@@ -17,9 +17,18 @@ bun run build
 
 cd ..
 
-docker buildx build \
-  --progress=plain \
-  --platform linux/amd64,linux/arm64 \
-  --push \
-  -t igncp/apisix-admin-panel:$VERSION \
-  .
+if [ -n "$DOCKER_PUSH" ]; then
+  docker buildx build \
+    --progress=plain \
+    --platform linux/amd64,linux/arm64 \
+    --push \
+    -t igncp/apisix-admin-panel:$VERSION \
+    -t igncp/apisix-admin-panel:latest \
+    .
+else
+  docker build \
+    --progress=plain \
+    -t igncp/apisix-admin-panel:$VERSION \
+    -t igncp/apisix-admin-panel:latest \
+    .
+fi

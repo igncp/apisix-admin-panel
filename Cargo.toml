@@ -2,6 +2,7 @@
 members = [
     "server",
     "wasm",
+    "plugin_w",
     "core"
 ]
 resolver = "1"

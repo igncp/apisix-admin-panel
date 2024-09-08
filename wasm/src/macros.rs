@@ -232,6 +232,13 @@ macro_rules! entity_fields_impl {
                     },
                 ))
             }
+
+            pub fn add_extra_json(&mut self, extra_json: wasm_bindgen::prelude::JsValue) {
+                let extra_json: std::collections::HashMap<String, serde_json::Value> =
+                    serde_wasm_bindgen::from_value(extra_json).unwrap();
+
+                self.0.parsed.value.0.merge_json(extra_json);
+            }
         }
     };
 }

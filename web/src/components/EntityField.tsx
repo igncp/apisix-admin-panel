@@ -11,10 +11,23 @@ export type EntityFieldsItems = null | Record<
   PluginsState | string | string[] | undefined
 >;
 
+const extraField: EntityFields = {
+  default_value: null,
+  description:
+    "You can add any extra fields here which will be merged with the entity",
+  example: '{ "foo": "bar" }',
+  hidden: false,
+  is_editable: true,
+  is_required: "False",
+  name: "extra",
+  property_type: "JSON",
+};
+
 export const parseEntityFields = <
   A extends {
     fields_definitions: () => EntityFields[];
     new (): {
+      add_extra_json: (value: unknown) => void;
       set_field: (key: string, value: unknown) => void;
     };
     plugin_entity: string;
@@ -124,6 +137,20 @@ export const parseEntityFields = <
     }
   });
 
+  const extraFields = (() => {
+    if (!items?.extra) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(items.extra as string);
+    } catch {
+      return {};
+    }
+  })();
+
+  entity.add_extra_json(extraFields);
+
   return entity;
 };
 
@@ -160,6 +187,7 @@ const EntityFieldBase = ({ entity, isEditing, items, setItems }: Props) => {
     <div className="flex w-full flex-col gap-[12px]">
       {fieldsDefinitions
         .sort((a, b) => getSortVal(a) - getSortVal(b))
+        .concat(extraField)
         .map((fieldDefinition) => {
           const { name } = fieldDefinition;
 

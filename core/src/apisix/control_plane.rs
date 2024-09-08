@@ -4,9 +4,9 @@ use crate::{
 };
 
 derive_common_default! {
-pub struct ControlPane;}
+pub struct ControlPlane;}
 
-impl ControlPane {
+impl ControlPlane {
     pub fn get_schema() -> Result<ProxyFetchOpts, String> {
         ProxyFetchOpts::get("/v1/schema")
     }

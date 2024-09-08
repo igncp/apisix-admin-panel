@@ -3,6 +3,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type FolderIcon from "@mui/icons-material/Folder";
+import OpenInNew from "@mui/icons-material/OpenInNew";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -22,6 +23,7 @@ type ListProps<A extends ListItemBase> = {
   items: A[];
   onDelete: (item: A) => void;
   onEdit: (item: A) => void;
+  onOpenUrl?: (item: A) => void;
 };
 
 export const EntitiesList = <A extends ListItemBase>({
@@ -29,6 +31,7 @@ export const EntitiesList = <A extends ListItemBase>({
   items,
   onDelete,
   onEdit,
+  onOpenUrl,
 }: ListProps<A>) => (
   <List>
     {items.map((item) => (
@@ -45,6 +48,18 @@ export const EntitiesList = <A extends ListItemBase>({
               </Avatar>
             </ListItemAvatar>
             <ListItemText className="flex-1" primary={item.long_display} />
+            {onOpenUrl && (
+              <IconButton
+                aria-label="Open"
+                edge="end"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenUrl(item);
+                }}
+              >
+                <OpenInNew />
+              </IconButton>
+            )}
             <IconButton
               aria-label="Edit"
               edge="end"

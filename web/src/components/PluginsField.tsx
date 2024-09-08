@@ -162,106 +162,114 @@ const PluginsFieldBase = ({
     return null;
   }
 
+  const { length: enabledPlugins } = Object.values(plugins || {}).filter(
+    (plugin) => plugin.enabled === "true",
+  );
+
   return (
-    <div
-      className="flex max-h-[250px] w-full flex-col gap-[12px] overflow-y-auto p-[8px]"
-      style={{ border: "1px solid #555" }}
-    >
-      <div className="px-[8px]">Plugins</div>
-      {entityPlugins
-        .slice(0)
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((plugin) => {
-          const { name } = plugin;
+    <>
+      <div className="px-[8px]">
+        Plugins. Enabled: {enabledPlugins} / {entityPlugins.length}.
+      </div>
+      <div
+        className="flex max-h-[250px] w-full flex-col gap-[12px] overflow-y-auto p-[8px]"
+        style={{ border: "1px solid #555" }}
+      >
+        {entityPlugins
+          .slice(0)
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((plugin) => {
+            const { name } = plugin;
 
-          const existingPluginValues = plugins?.[name];
+            const existingPluginValues = plugins?.[name];
 
-          const isEnabled = existingPluginValues?.enabled === "true";
+            const isEnabled = existingPluginValues?.enabled === "true";
 
-          const getSortVal = (a: PluginOption) => {
-            if (a.is_required !== "False") {
-              return 0;
-            }
+            const getSortVal = (a: PluginOption) => {
+              if (a.is_required !== "False") {
+                return 0;
+              }
 
-            if (typeof a.property_type !== "object") {
-              return 1;
-            }
+              if (typeof a.property_type !== "object") {
+                return 1;
+              }
 
-            return 2;
-          };
+              return 2;
+            };
 
-          const checkboxId = [entity, name, "enabled"].join("-");
+            const checkboxId = [entity, name, "enabled"].join("-");
 
-          return (
-            <div
-              className="px-[8px] py-[8px]"
-              key={name}
-              style={isEnabled ? { border: "1px solid #555" } : {}}
-            >
-              <div className="flex flex-row items-center justify-between gap-[12px]">
-                <span>{name}</span>
-                <a
-                  className="text-blue-200"
-                  href={`https://apisix.apache.org/docs/apisix/plugins/${name}`}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <OpenInNewIcon />
-                </a>
-                <a
-                  className="text-blue-200"
-                  href={`https://github.com/apache/apisix/blob/master/apisix/plugins/${name}.lua`}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <CodeIcon />
-                </a>
-                <div className="flex-1" />
-                <span>
-                  <label className="cursor-pointer" htmlFor={checkboxId}>
-                    Enable:
-                  </label>{" "}
-                  <Checkbox
-                    checked={isEnabled}
-                    id={checkboxId}
-                    onChange={() => {
-                      setPlugins({
-                        ...(plugins || {}),
-                        [name]: {
-                          ...existingPluginValues,
-                          enabled: String(!isEnabled),
-                        },
-                      } as PluginsState);
-                    }}
-                  />
-                </span>
-              </div>
-              {!!isEnabled && (
-                <div className="flex flex-col gap-[12px]">
-                  {plugin.options
-                    .slice(0)
-                    .sort((a, b) => getSortVal(a) - getSortVal(b))
-                    .map((field) => (
-                      <MultiField
-                        definition={field}
-                        isEditing={isEditing}
-                        key={field.name}
-                        prefix={name}
-                        setState={(optionState) => {
-                          setPlugins({
-                            ...(plugins || {}),
-                            [name]: optionState,
-                          } as PluginsState);
-                        }}
-                        state={existingPluginValues}
-                      />
-                    ))}
+            return (
+              <div
+                className="px-[8px] py-[8px]"
+                key={name}
+                style={isEnabled ? { border: "1px solid #555" } : {}}
+              >
+                <div className="flex flex-row items-center justify-between gap-[12px]">
+                  <span>{name}</span>
+                  <a
+                    className="text-blue-200"
+                    href={`https://apisix.apache.org/docs/apisix/plugins/${name}`}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <OpenInNewIcon />
+                  </a>
+                  <a
+                    className="text-blue-200"
+                    href={`https://github.com/apache/apisix/blob/master/apisix/plugins/${name}.lua`}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <CodeIcon />
+                  </a>
+                  <div className="flex-1" />
+                  <span>
+                    <label className="cursor-pointer" htmlFor={checkboxId}>
+                      Enable:
+                    </label>{" "}
+                    <Checkbox
+                      checked={isEnabled}
+                      id={checkboxId}
+                      onChange={() => {
+                        setPlugins({
+                          ...(plugins || {}),
+                          [name]: {
+                            ...existingPluginValues,
+                            enabled: String(!isEnabled),
+                          },
+                        } as PluginsState);
+                      }}
+                    />
+                  </span>
                 </div>
-              )}
-            </div>
-          );
-        })}
-    </div>
+                {!!isEnabled && (
+                  <div className="flex flex-col gap-[12px]">
+                    {plugin.options
+                      .slice(0)
+                      .sort((a, b) => getSortVal(a) - getSortVal(b))
+                      .map((field) => (
+                        <MultiField
+                          definition={field}
+                          isEditing={isEditing}
+                          key={field.name}
+                          prefix={name}
+                          setState={(optionState) => {
+                            setPlugins({
+                              ...(plugins || {}),
+                              [name]: optionState,
+                            } as PluginsState);
+                          }}
+                          state={existingPluginValues}
+                        />
+                      ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+      </div>
+    </>
   );
 };
 

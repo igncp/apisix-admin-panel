@@ -1,6 +1,8 @@
 use apisix_admin_panel_core::apisix::plugins::{
     basic_auth::{ConsumerBasicAuthPlugin, RouteBasicAuthPlugin},
     consumer_restriction::ConsumerRestrictionPlugin,
+    cors::CorsPlugin,
+    ext_plugin_pre_req::ExtPluginPreReqPlugin,
     ip_restriction::IpRestrictionPlugin,
     key_auth::{ConsumerKeyAuthPlugin, RouteKeyAuthPlugin},
     limit_count::LimitCountPlugin,
@@ -26,6 +28,8 @@ impl WasmPluginDefinitions {
             ConsumerBasicAuthPlugin::new(),
             ConsumerKeyAuthPlugin::new(),
             ConsumerRestrictionPlugin::new(),
+            CorsPlugin::new(),
+            ExtPluginPreReqPlugin::new(),
             IpRestrictionPlugin::new(),
             LimitCountPlugin::new(),
             PrometheusPlugin::new(),

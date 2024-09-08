@@ -2,7 +2,7 @@ import type { WasmProxyFetchOpts } from "pkg";
 import {
   WasmConsumer,
   WasmConsumerGroup,
-  WasmControlPane,
+  WasmControlPlane,
   WasmRoute,
   WasmSecret,
   WasmService,
@@ -14,23 +14,39 @@ import type { ServerInfo } from "src/bindings/ServerInfo";
 const baseUrl =
   process.env.NODE_ENV === "production" ? "" : "http://localhost:9000";
 
+const verifyResponse = (res: Response) => {
+  if (res.status === 401) {
+    window.location.href = "/login";
+  }
+};
+
 const fetchApisixAdmin = async <T>(body: WasmProxyFetchOpts) =>
   await fetch(`${baseUrl}/api/apisix-admin`, {
     body: body.format(),
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
     method: "POST",
-  }).then((res) => res.json() as T);
+  }).then((res) => {
+    verifyResponse(res);
+
+    return res.json() as T;
+  });
 
 const fetchApisixControl = async <T>(body: WasmProxyFetchOpts) =>
   await fetch(`${baseUrl}/api/apisix-control`, {
     body: body.format(),
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
     method: "POST",
-  }).then((res) => res.json() as T);
+  }).then((res) => {
+    verifyResponse(res);
+
+    return res.json() as T;
+  });
 
 const genGetMethod =
   <
@@ -101,21 +117,57 @@ export const upsertService = upsertMethod(WasmService);
 export const upsertStreamRoute = upsertMethod(WasmStreamRoute);
 export const upsertUpstream = upsertMethod(WasmUpstream);
 
-export const getSchema = () => fetchApisixControl(WasmControlPane.get_schema());
+export const getSchema = () =>
+  fetchApisixControl(WasmControlPlane.get_schema());
 export const getHealthCheck = () =>
-  fetchApisixControl(WasmControlPane.get_health_check());
+  fetchApisixControl(WasmControlPlane.get_health_check());
 export const reloadPlugins = () =>
-  fetchApisixControl(WasmControlPane.reload_plugins());
+  fetchApisixControl(WasmControlPlane.reload_plugins());
 export const getFileConfig = () =>
   fetch(`${baseUrl}/api/apisix-config`, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
-  }).then((res) => res.json() as unknown);
+  }).then((res) => {
+    verifyResponse(res);
+
+    return res.json() as unknown;
+  });
 
 export const getServerInfo = async (): Promise<ServerInfo> =>
   fetch(`${baseUrl}/api/info`, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
-  }).then((res) => res.json() as unknown as ServerInfo);
+  }).then((res) => {
+    verifyResponse(res);
+
+    return res.json() as unknown as ServerInfo;
+  });
+
+export const login = async (username: string, password: string) => {
+  const response = await fetch(`${baseUrl}/auth/login`, {
+    body: JSON.stringify({ password, username }),
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+
+  return response.ok;
+};
+
+export const logout = async () => {
+  const response = await fetch(`${baseUrl}/auth/logout`, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+
+  return response.ok;
+};

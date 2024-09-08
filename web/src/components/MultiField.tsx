@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { PropertyType } from "src/bindings/PropertyType";
 import type { Required } from "src/bindings/Required";
 
@@ -6,6 +7,7 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 
+import { JSONField } from "./JSONField";
 import Button from "./ui/Button";
 import { Checkbox, Input } from "./ui/Input";
 import { Text } from "./ui/Text";
@@ -48,9 +50,22 @@ export const MultiField = ({
   } = definition;
 
   const existingOptionValue = state?.[name] || "";
+  const setContentWrap = useRef<{ fn: (v: string) => void }>({ fn: () => {} });
 
   if (typeof propertyType === "object" && "List" in propertyType) {
-    const parsedItems = (existingOptionValue as string[] | undefined) || [];
+    const parsedItems = (() => {
+      if (typeof existingOptionValue === "string") {
+        try {
+          return JSON.parse(existingOptionValue).map((v: unknown) =>
+            typeof v === "string" ? v : JSON.stringify(v),
+          );
+        } catch {
+          return [];
+        }
+      }
+
+      return (existingOptionValue as string[] | undefined) || [];
+    })() as string[];
 
     const isJSON = propertyType.List === "JSON";
 
@@ -227,6 +242,24 @@ export const MultiField = ({
   }
 
   const isJSON = propertyType === "JSON";
+
+  if (propertyType === "JSON") {
+    setContentWrap.current.fn = (val: string) => {
+      setState({
+        ...state,
+        [name]: val,
+      });
+    };
+
+    return (
+      <JSONField
+        content={existingOptionValue as string}
+        key={name}
+        name={name}
+        setContentWrap={setContentWrap.current}
+      />
+    );
+  }
 
   const isValid = (() => {
     if (!!existingOptionValue && isJSON) {

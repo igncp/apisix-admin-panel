@@ -2,7 +2,7 @@ pub mod base;
 pub mod common;
 pub mod consumer_groups;
 pub mod consumers;
-pub mod control_pane;
+pub mod control_plane;
 pub mod plugins;
 pub mod routes;
 pub mod secrets;

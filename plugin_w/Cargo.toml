@@ -1,0 +1,14 @@
+[package]
+name = "apisix-admin-panel-plugin-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = "0.4.22"
+proxy-wasm = "0.2.2"
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

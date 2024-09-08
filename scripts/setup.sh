@@ -6,11 +6,22 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 cd $SCRIPT_DIR/..
 
-cargo clippy --release --all-features --all-targets -- -D warnings
-
 bash scripts/pack_wasm.sh
 
 cd web
 
-./node_modules/.bin/eslint . --fix
-bun run build
+bun i
+
+cd ../server
+
+cargo watch
+
+cd ../plugin_w
+
+wasm-pack build
+
+cd ..
+
+docker compose up -d
+
+echo "Setup finished correctly"

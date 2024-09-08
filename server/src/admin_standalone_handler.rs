@@ -2,7 +2,7 @@ use actix_files::NamedFile;
 use apisix_admin_panel_core::{
     apisix::{
         common::prelude::*, consumer_groups::ConsumerGroup, consumers::Consumer, routes::Route,
-        services::Service, upstreams::Upstream,
+        secrets::Secret, services::Service, stream_routes::StreamRoute, upstreams::Upstream,
     },
     proxy::{ProxyFetchMethod, ProxyFetchOpts},
 };
@@ -38,6 +38,10 @@ impl AdminStandaloneHandler {
             return self.handle_items("routes", opts, map_content).await;
         } else if opts.uri.starts_with(Consumer::API_PREFIX) {
             return self.handle_items("consumers", opts, map_content).await;
+        } else if opts.uri.starts_with(Secret::API_PREFIX) {
+            return self.handle_items("secrets", opts, map_content).await;
+        } else if opts.uri.starts_with(StreamRoute::API_PREFIX) {
+            return self.handle_items("stream-routes", opts, map_content).await;
         } else if opts.uri.starts_with(Service::API_PREFIX) {
             return self.handle_items("services", opts, map_content).await;
         } else if opts.uri.starts_with(Upstream::API_PREFIX) {

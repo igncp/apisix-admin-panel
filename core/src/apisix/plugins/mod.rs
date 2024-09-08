@@ -1,6 +1,8 @@
 pub mod basic_auth;
 pub mod common;
 pub mod consumer_restriction;
+pub mod cors;
+pub mod ext_plugin_pre_req;
 pub mod ip_restriction;
 pub mod key_auth;
 pub mod limit_count;

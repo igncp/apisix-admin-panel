@@ -22,6 +22,7 @@
           if ! type -p cargo-watch &>/dev/null; then
             cargo install cargo-watch
           fi
+
           export APISIX_CONFIG_FILE="$PWD/scripts/apisix_conf.yaml"
         '';
         packages = with pkgs;

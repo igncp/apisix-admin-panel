@@ -4,28 +4,33 @@ use actix_web::{
     dev::{fn_service, ServiceRequest, ServiceResponse},
     get,
     http::StatusCode,
-    post, web, App, HttpResponse, HttpServer, Responder,
+    post, web, App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use admin_api_handler::AdminApiHandler;
 use admin_standalone_handler::AdminStandaloneHandler;
 use apisix_admin_panel_core::proxy::{ProxyFetchMethod, ProxyFetchOpts};
-use config::ServerConfig;
+use auth::{get_auth_scope, verify_auth};
+use config::{HandlerConfig, ServerConfig};
 use serde::{Deserialize, Serialize};
+use server_error::{CommonResponse, RespError};
 use std::{io::Read, sync::Arc};
 use ts_rs::TS;
 
 mod admin_api_handler;
 mod admin_standalone_handler;
+mod auth;
 mod config;
-
-type HandlerConfig = web::Data<Arc<ServerConfig>>;
+mod server_error;
 
 #[post("/api/apisix-admin")]
 async fn post_proxy_apisix_admin(
+    req: HttpRequest,
     config: HandlerConfig,
     body: web::Json<ProxyFetchOpts>,
-) -> impl Responder {
-    let text = if let Some(standalone_config_path) = config.standalone_config_path.clone() {
+) -> CommonResponse {
+    verify_auth(&req, &config)?;
+
+    let text = (if let Some(standalone_config_path) = config.standalone_config_path.clone() {
         let handler = AdminStandaloneHandler {
             config_path: standalone_config_path,
         };
@@ -36,24 +41,22 @@ async fn post_proxy_apisix_admin(
             url: config.admin_url.clone(),
         };
         handler.handle(body.into_inner()).await
-    };
+    })
+    .map_err(|_| RespError::Custom("Error fetching data from APISIX admin API".to_string()))?;
 
-    if let Ok(text) = text {
-        return HttpResponse::Ok()
-            .append_header(("Content-Type", "application/json"))
-            .body(text);
-    }
-
-    println!("Error: {:?}", text);
-
-    HttpResponse::InternalServerError().body("Error fetching data from APISIX admin API")
+    return Ok(HttpResponse::Ok()
+        .append_header(("Content-Type", "application/json"))
+        .body(text));
 }
 
 #[post("/api/apisix-control")]
 async fn post_proxy_apisix_control(
+    req: HttpRequest,
     config: HandlerConfig,
     body: web::Json<ProxyFetchOpts>,
-) -> impl Responder {
+) -> CommonResponse {
+    verify_auth(&req, &config)?;
+
     let client = reqwest::Client::new();
 
     let url = format!("{}{}", config.control_url.clone(), body.uri);
@@ -62,9 +65,9 @@ async fn post_proxy_apisix_control(
         ProxyFetchMethod::GET => {
             let res = client.get(&url).send().await.unwrap();
 
-            return HttpResponse::Ok()
+            return Ok(HttpResponse::Ok()
                 .append_header(("Content-Type", "application/json"))
-                .body(res.text().await.unwrap());
+                .body(res.text().await.unwrap()));
         }
         ProxyFetchMethod::PUT => {
             let mut client = client.put(&url);
@@ -75,9 +78,9 @@ async fn post_proxy_apisix_control(
 
             let res = client.send().await.unwrap();
 
-            HttpResponse::Ok().json(res.text().await.unwrap())
+            Ok(HttpResponse::Ok().json(res.text().await.unwrap()))
         }
-        _ => HttpResponse::BadRequest().body("Method not allowed"),
+        _ => Ok(HttpResponse::BadRequest().body("Method not allowed")),
     }
 }
 
@@ -87,63 +90,52 @@ async fn get_health() -> impl Responder {
 }
 
 #[get("/api/apisix-config")]
-async fn get_apisix_config(config: HandlerConfig) -> impl Responder {
+async fn get_apisix_config(req: HttpRequest, config: HandlerConfig) -> CommonResponse {
+    verify_auth(&req, &config)?;
+
     let apisix_key = config.api_key.clone();
 
-    let file = NamedFile::open(config.config_file_path.clone());
-
-    if file.is_err() {
-        return HttpResponse::NotFound().body("APISIX config file not found");
-    }
-
-    let mut file = file.unwrap();
+    let mut file = NamedFile::open(config.config_file_path.clone())
+        .map_err(|_| RespError::Custom("APISIX config file not found".to_string()))?;
 
     let mut content = String::new();
-    let read_result = file.read_to_string(&mut content);
 
-    if read_result.is_err() {
-        return HttpResponse::InternalServerError().body("Failed to read APISIX config file");
-    }
-
-    read_result.unwrap();
+    file.read_to_string(&mut content)
+        .map_err(|_| RespError::Custom("Failed to read APISIX config file".to_string()))?;
 
     let sanitized_content = content.replace(&apisix_key, "REDACTED");
-    let parsed_content: Result<serde_yaml::Value, _> = serde_yaml::from_str(&sanitized_content);
+    let parsed_content: serde_yaml::Value = serde_yaml::from_str(&sanitized_content)
+        .map_err(|_| RespError::Custom("Failed to parse APISIX config file".to_string()))?;
+    let json_content = serde_json::to_string(&parsed_content)
+        .map_err(|_| RespError::Custom("Failed to convert APISIX config to JSON".to_string()))?;
 
-    if parsed_content.is_err() {
-        return HttpResponse::InternalServerError().body("Failed to parse APISIX config file");
-    }
-
-    let parsed_content = parsed_content.unwrap();
-    let json_content = serde_json::to_string(&parsed_content);
-
-    if json_content.is_err() {
-        return HttpResponse::InternalServerError().body("Failed to convert APISIX config to JSON");
-    }
-
-    let json_content = json_content.unwrap();
-
-    HttpResponse::Ok()
+    Ok(HttpResponse::Ok()
         .append_header(("Content-Type", "application/yaml"))
-        .body(json_content)
+        .body(json_content))
 }
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
 struct ServerInfo {
+    apisix_url: String,
     is_standalone: bool,
+    has_auth: bool,
 }
 
 #[get("/api/info")]
-async fn get_info(config: HandlerConfig) -> impl Responder {
+async fn get_info(req: HttpRequest, config: HandlerConfig) -> CommonResponse {
+    verify_auth(&req, &config)?;
+
     let server_info = ServerInfo {
+        apisix_url: config.apisix_url.clone(),
+        has_auth: !config.jwt_secret.is_empty(),
         is_standalone: config.standalone_config_path.is_some(),
     };
     let json_str = serde_json::to_string(&server_info).unwrap();
 
-    HttpResponse::Ok()
+    Ok(HttpResponse::Ok()
         .append_header(("Content-Type", "application/yaml"))
-        .body(json_str)
+        .body(json_str))
 }
 
 #[actix_web::main]
@@ -176,11 +168,14 @@ async fn main() -> std::io::Result<()> {
             }));
 
         let config = web::Data::new(Arc::new(ServerConfig::new()));
+        let auth_scope = get_auth_scope();
 
         App::new()
             .app_data(config)
+            .service(auth_scope)
             .service(get_apisix_config)
             .service(get_health)
+            .service(get_info)
             .service(post_proxy_apisix_admin)
             .service(post_proxy_apisix_control)
             .service(static_files)

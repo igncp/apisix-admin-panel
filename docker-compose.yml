@@ -47,6 +47,7 @@ services:
     image: apache/apisix:3.9.1-debian
     volumes:
       - ./scripts/apisix_standalone:/usr/local/apisix/conf
+      - ./plugin_w/pkg:/wasm_plugin
     ports:
       - "4100:9180/tcp"
       - "4000:9080/tcp"

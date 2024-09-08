@@ -1,7 +1,5 @@
-import MenuIcon from "@mui/icons-material/Menu";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 
@@ -13,16 +11,8 @@ export default function Dashboard() {
   return (
     <AppBar component="nav">
       <Toolbar>
-        <IconButton
-          aria-label="Open drawer"
-          color="inherit"
-          edge="start"
-          sx={{ display: { sm: "none" }, mr: 2 }}
-        >
-          <MenuIcon />
-        </IconButton>
         <Typography className="flex-1" variant="h6">
-          APISIX Dashboard
+          APISIX Admin Panel
         </Typography>
         <Box sx={{ display: { sm: "block", xs: "none" } }}>
           <Button
@@ -36,7 +26,7 @@ export default function Dashboard() {
             Docs
           </Button>
         </Box>
-        <Box sx={{ display: { sm: "block", xs: "none" } }}>
+        <Box>
           <span>{version}</span>
         </Box>
       </Toolbar>

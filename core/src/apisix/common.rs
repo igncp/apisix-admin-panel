@@ -1,3 +1,7 @@
+use super::{
+    base::{PropertyType, Required},
+    plugins::common::PluginEntities,
+};
 use crate::{
     macros::{derive_common, derive_common_default},
     proxy::{ProxyFetchMethod, ProxyFetchOpts},
@@ -5,11 +9,6 @@ use crate::{
 use serde_json::Value;
 use std::collections::HashMap;
 use ts_rs::TS;
-
-use super::{
-    base::{PropertyType, Required},
-    plugins::common::PluginEntities,
-};
 
 pub type OtherFields = HashMap<String, Value>;
 
@@ -19,6 +18,39 @@ pub struct EntityValue {
 }}
 
 pub const DISPLAY_SEPARATOR: &str = " | ";
+
+fn merge_deep_json(
+    base: HashMap<String, Value>,
+    other: HashMap<String, Value>,
+) -> HashMap<String, Value> {
+    let mut new_map = base.clone();
+
+    for (key, other_value) in other {
+        if let Some(base_value) = base.get(&key) {
+            if base_value.is_object() {
+                let base_value_map: HashMap<String, Value> =
+                    serde_json::from_value(base_value.clone()).unwrap();
+
+                if other_value.is_object() {
+                    let other_value_map: HashMap<String, Value> =
+                        serde_json::from_value(other_value).unwrap();
+                    let new_obj = merge_deep_json(base_value_map, other_value_map);
+                    let new_obj_value = serde_json::to_value(new_obj).unwrap();
+
+                    new_map.insert(key, new_obj_value);
+                } else {
+                    new_map.insert(key, other_value);
+                }
+            } else {
+                new_map.insert(key, other_value);
+            }
+        } else {
+            new_map.insert(key, other_value);
+        }
+    }
+
+    new_map
+}
 
 impl EntityValue {
     pub fn get(&self, key: &str) -> Option<&Value> {
@@ -71,6 +103,14 @@ impl EntityValue {
         let method = ProxyFetchMethod::PATCH;
 
         (uri, method)
+    }
+
+    pub fn merge_json(&mut self, val: HashMap<String, Value>) {
+        if self.other_fields.is_none() {
+            self.other_fields = Some(HashMap::new());
+        }
+
+        self.other_fields = Some(merge_deep_json(self.other_fields.clone().unwrap(), val));
     }
 }
 

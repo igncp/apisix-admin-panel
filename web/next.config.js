@@ -1,5 +1,9 @@
-const webpack = require("webpack");
 const fs = require("fs");
+const webpack = require("webpack");
+
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+  enabled: process.env.ANALYZE === "true",
+});
 
 const NEXT_PUBLIC_VERSION = fs.readFileSync("../VERSION", "utf8").trim();
 
@@ -8,6 +12,7 @@ const nextConfig = {
     NEXT_PUBLIC_VERSION,
   },
   output: "export",
+  trailingSlash: true,
   webpack: (config, { isServer }) => {
     config.experiments = {
       ...config.experiments,
@@ -30,4 +35,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);

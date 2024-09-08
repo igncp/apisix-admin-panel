@@ -1,22 +1,32 @@
 consumers:
-- plugins:
-    key-auth:
-      key: user1-key
-  username: user1
+  - plugins:
+      key-auth:
+        key: user1-key
+    username: user1
 routes:
-- id: '0'
-  plugins:
-    key-auth: {}
-    limit-count:
-      count: 2
-      rejected_code: 503
-      time_window: 60
-    proxy-rewrite:
-      uri: /
-  upstream:
-    nodes:
-      web-server-1:80: 1
-    type: roundrobin
-  uri: /foo5
-
+  - id: "0"
+    plugins:
+      key-auth: {}
+      limit-count:
+        count: 2
+        rejected_code: 503
+        time_window: 60
+      proxy-rewrite:
+        uri: /
+    upstream:
+      nodes:
+        web-server-1:80: 1
+      type: roundrobin
+    uri: /foo5
+  - plugins:
+      wasm_log:
+        conf: "{}"
+      proxy-rewrite:
+        uri: /
+    uri: /wasm-route
+    upstream:
+      nodes:
+        web-server-1:80: 1
+      type: roundrobin
 #END
+
